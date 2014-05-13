@@ -6,12 +6,12 @@ Work in progress
 For now, just a proof of concept
 Full implementation soon...
 
-SuperPathExpander.js
+**SuperPathExpander.js**
 
 Script which expand instances of the superpath extension to produce a standard 
 SVG 1.1 file.
 
-piece01withExternalScript.svg
+**piece01withExternalScript.svg**
 
 Sample SVG file with usage of the extension.
 Line
@@ -30,4 +30,7 @@ Lines
 use the chunk as part of the path data (d) definition with reference to the id 
 of the chunk.
 
-  
+**piece01-expanded.svg**
+
+Is the standard SVG file equivalent to the one obtained by execution of the
+SuperPathExpander.js/expandPaths() function in  piece01withExternalScript.svg
