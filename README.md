@@ -21,7 +21,7 @@ Line
 define a path chunk
 
 Lines
-'''
+'''svg
   <path d="M 90,190 220,90 P#p1 120,375 z"
        fill="yellow" stroke="blue" stroke-width="5" />
   <path d="M 500,385 390,460 R#p1 450,50 565,81 z"
