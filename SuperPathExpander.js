@@ -1,3 +1,29 @@
+/*
+ *			SuperPath - SVG Extension
+ *
+ *			Author: Jean-Claude Moissinac
+ *			Copyright (c) Telecom ParisTech 2013-2014
+ *					All rights reserved
+ *
+ *  SuperPath is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *  
+ *  This file is the main file of the implementation of the SuperPath extension
+ *  His goal is to expand each SuperPath instance to produce a valid SVG file
+ *  regarding the SVG 1.1 specification   
+ *
+ *  SuperPath is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 var XMLRI_STRING = 1; // constant
 var XMLRI_ELEMENTID = 2; // constant
 function expandPaths() {
