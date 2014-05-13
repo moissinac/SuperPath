@@ -1,0 +1,21 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" 
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!--
+This file is what is a standard representation of piece01.svg
+The 'superpath' commands has been expanded
+-->
+<svg width="8cm" height="8cm" viewBox="0 0 800 800"
+     xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <title>Example piece01 - piece and reversed piece commands in path data</title>
+  <desc>Picture of a simple paving of a region with two path sharing a piece</desc>
+  <defs>        
+    <path d="L330,150 280,230 330,310 280,400" id="p1" />                             
+  </defs>
+  <rect x="1" y="1" width="798" height="798"
+    fill="none" stroke="blue" stroke-width="1" />
+  <path d="M 90,190 220,90 330,150 280,230 330,310 280,400 120,375 z"
+       fill="yellow" stroke="blue" stroke-width="5" />
+  <path d="M 500,385 390,460 280,400 330,310 280,230 330,150 450,50 565,81 z"
+       fill="red" stroke="blue" stroke-width="5" />
+</svg>

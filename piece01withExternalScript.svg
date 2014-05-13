@@ -1,0 +1,20 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" 
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="8cm" height="8cm" viewBox="0 0 800 800"
+     xmlns="http://www.w3.org/2000/svg" 
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     version="1.1" onload="expandPaths()">
+  <title>Example piece01 - piece and reversed piece commands in path data</title>
+  <desc>Picture of a simple paving of a region with two path sharing a piece</desc>
+  <script type="application/ecmascript" xlink:href="SuperPathExpander.js" />
+  <defs>        
+    <path d="L330,150 280,230 h10 L330,310 280,400" id="p1" />                             
+  </defs>
+  <rect x="1" y="1" width="798" height="798"
+    fill="none" stroke="blue" stroke-width="1" />
+  <path d="M 90,190 220,90 P#p1 120,375 z"
+       fill="yellow" stroke="blue" stroke-width="5" />
+  <path d="M 500,385 390,460 R#p1 450,50 565,81 z"
+       fill="red" stroke="blue" stroke-width="5" />
+</svg>
