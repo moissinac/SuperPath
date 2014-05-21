@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- 
+ *
+ *			SuperPath - SVG Extension
+ *
+ *			Author: Jean-Claude Moissinac
+ *			Copyright (c) Telecom ParisTech 2013-2014
+ *					All rights reserved
+ *
+ *  SuperPath is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *  
+ *  This file is an example for usage of the file  SuperPathExpander.js 
+ *
+ *  SuperPath is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ *
+--> 
+<svg
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sp="superpath"
+   xmlns="http://www.w3.org/2000/svg"
+   width="1200"
+   height="1200"
+   id="svg2"
+     version="1.1" onload="init()">
+  <script type="application/ecmascript" xlink:href="SuperPathExpander.js" />
+    <script	  type="text/javascript">
+      var sp;
+      function init()
+      {
+        sp = new superpath();
+        sp.expandPaths();
+      }
+    </script>
+     <defs>
+        <path id="p1" d="l0,0l0,-50q100,-50 0,-100l0,-50l0,0" />
+        <path id="p2" d="L425,225Q375,200 425,175Q525,125 425,75Q375,50 425,25" />
+     </defs>
+    <path  d="M425,25L225,25 225,225 425,225P#p1" style="fill:#0000FF" />
+    <path  d="M425,25R#p1 L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
+    <g transform="translate(0 300)">
+      <path  d="M425,25L225,25 225,225 425,225P#p2" style="fill:#0000FF" />
+      <path  d="M425,25R#p2 L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
+    </g>
+    <g transform="translate(500 0)">
+      <path  d="M425,25L225,25 225,225 425,225P#p1" style="fill:#0000FF" />
+      <path  d="M425,25R#p1 L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
+      <path  d="M425,225P#p1"  style="stroke:#FF0000;fill:none;stroke-width:3" />
+    </g>
+    <g transform="translate(500 300)">
+      <path  d="M425,25L225,25 225,225 425,225P#p2" style="fill:#0000FF" />
+      <path  d="M425,25R#p2 L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
+      <path  d="M425,25R#p2" style="stroke:#FF0000;fill:none;stroke-width:3" />
+    </g>
+</svg>
