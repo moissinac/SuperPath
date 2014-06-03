@@ -24,14 +24,15 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-var superpath = function()
-{
-  var superpath = {};
+(function() {
+  var superpath = {
+    version: "0.0.1"
+  };
  
    superpath.XMLRI_STRING = 1; // constant
   superpath.XMLRI_ELEMENTID = 2; // constant
   
-  this.expandPaths = function() {
+  superpath.expandPaths = function() {
       var pathlist=document.getElementsByTagName("path");
       var len = pathlist.length;
       for (var i=0; i<len; ++i) {
@@ -423,4 +424,11 @@ var superpath = function()
    
     return cmdList;
   }
-}
+  if (typeof define === "function" && define.amd) {
+    define(superpath);
+  } else if (typeof module === "object" && module.exports) {
+    module.exports = superpath;
+  } else {
+    this.superpath = superpath;
+  }
+}).call(this);

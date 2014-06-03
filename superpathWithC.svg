@@ -32,16 +32,8 @@
    width="850"
    height="850"
    id="svg2"
-     version="1.1" onload="init()">
+     version="1.1" onload="superpath.expandPaths()">
   <script type="application/ecmascript" xlink:href="SuperPathExpander.js" />
-    <script	  type="text/javascript">
-      var sp;
-      function init()
-      {
-        sp = new superpath();
-        sp.expandPaths();
-      }
-    </script>
      <defs>
         <path id="p3" d="C 315,825 225,735 225,625 225,514 314,425 425,425 535,425 625,335 625,225 625,114 535,25 425,25" />
      </defs>
