@@ -33,7 +33,7 @@
      version="1.1" onload="superpath.expandPaths()">
   <title>Example piece01 - piece and reversed piece commands in path data</title>
   <desc>Picture of a simple paving of a region with two path sharing a piece</desc>
-  <script type="application/ecmascript" xlink:href="SuperPathExpander.js" />
+  <script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js" />
   <defs>        
     <path d="L330,150 280,230 h10 L330,310 280,400" id="p1" />                             
   </defs>

@@ -33,16 +33,8 @@
    width="1200"
    height="1200"
    id="svg2"
-     version="1.1" onload="init()">
-  <script type="application/ecmascript" xlink:href="SuperPathExpander.js" />
-    <script	  type="text/javascript">
-      var sp;
-      function init()
-      {
-        sp = new superpath();
-        sp.expandPaths();
-      }
-    </script>
+     version="1.1" onload="superpath.expandPaths()">
+    <script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js" />
      <defs>
         <path id="p1" d="l0,0l0,-50c100,-12.5 0,-37.5 0,-100l0,-50l0,0" />
         <path id="p2" d="l0,0c-50,-12.5 -50,-37.5 0,-50c100,-25 100,-75 0,-100c-50,-12.5 -50,-37.5 0,-50" />

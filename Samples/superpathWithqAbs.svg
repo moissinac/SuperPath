@@ -33,7 +33,7 @@
    height="1200"
    id="svg2"
      version="1.1" onload="superpath.expandPaths()">
-  <script type="application/ecmascript" xlink:href="SuperPathExpander.js" />
+    <script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js" />
      <defs>
         <path id="p1" d="L425,225L425,175Q525,125 425,75L425,25" />
         <path id="p2" d="L425,225Q375,200 425,175Q525,125 425,75Q375,50 425,25" />

@@ -32,16 +32,8 @@
    width="850"
    height="850"
    id="svg2"
-     version="1.1" onload="init()">
-  <script type="application/ecmascript" xlink:href="SuperPathExpander.js" />
-    <script	  type="text/javascript">
-      var sp;
-      function init()
-      {
-        sp = new superpath();
-        sp.expandPaths();
-      }
-    </script>
+     version="1.1" onload="superpath.expandPaths()">
+  <script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js" />
       <g
          style="fill:#0000FF  ;fill-opacity:0.8"
          id="gYin">
