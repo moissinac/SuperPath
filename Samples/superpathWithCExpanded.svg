@@ -1,6 +1,4 @@
-<?xml version="1.0" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" 
-  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- 
  *
  *			SuperPath - SVG Extension
@@ -15,7 +13,6 @@
  *  any later version.
  *  
  *  This file is an example for usage of the file  SuperPathExpander.js 
- *  Use a piece of path which is closed, so P#p1 must render the same thing that R#p1 
  *
  *  SuperPath is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -28,12 +25,14 @@
  *
  *
 --> 
- <svg width="8cm" height="8cm" viewBox="0 0 800 800"
-     xmlns="http://www.w3.org/2000/svg" 
-     xmlns:xlink="http://www.w3.org/1999/xlink"
+<svg
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   width="850"
+   height="850"
+   id="svg2"
      version="1.1" onload="init()">
-  <title>Example piece01 - piece and reversed piece commands in path data</title>
-  <desc>Picture of a simple paving of a region with two path sharing a piece</desc>
   <script type="application/ecmascript" xlink:href="SuperPathExpander.js" />
     <script	  type="text/javascript">
       var sp;
@@ -43,11 +42,15 @@
         sp.expandPaths();
       }
     </script>
-  <defs>        
-    <path d="L425,25L225,25L225,225L425,225L425,175Q525,125 425,75L425,25" id="p1" />                             
-  </defs>
-  <rect x="1" y="1" width="798" height="798"
-    fill="none" stroke="blue" stroke-width="1" />
-  <path d="M425,25P#p1" fill="yellow" stroke="blue" stroke-width="5" />
-  <path d="M425,25R#p1" fill="red" stroke="blue" stroke-width="5" />
+      <g
+         style="fill:#0000FF  ;fill-opacity:0.8"
+         id="gYin">
+            <path d="M 425,25 C 205,25 25,205 25,425 25,645.8 205,825 425,825 C 315,825 225,735 225,625 225,514 314,425 425,425 535,425 625,335 625,225 625,114 535,25 425,25 z" id="pathYinBG"/>      
+      </g>
+      <g
+         style="fill:#00FFFF  ;fill-opacity:0.8"
+         id="gYin">
+            <path d="M 425,825 C 315,825 225,735 225,625 225,514 314,425 425,425 535,425 625,335 625,225 625,114 535,25 425,25 C 625,25 825,221 825,425 825,645.8 625,825 425,825 z" id="pathYinBG"/>      
+      </g>
 </svg>
+
