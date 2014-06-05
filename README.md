@@ -2,9 +2,10 @@ SuperPath
 =========
 
 Proposed extension for SVG
+
 Work in progress
-For now, just a proof of concept
-Full implementation soon...
+
+For now, just a proof of concept, but can be useful. Full implementation an documentation soon...
 
 If you write a scientific paper and use that code, thank's to cite me as follow:
 
@@ -31,7 +32,11 @@ A typical usage is:
  onload="superpath.expandPaths()"
 ```
 
+Then, the principle is to define chunk of path as path with id in the defs element, then to use it with the command P or R in the data for other path.
 
+P#idOfMyChunk insert a copy of the chunk with id idOfMyChunk (a space must follow the id; it's the separator with what follow)
+
+R#idOfMyChunk insert a copy of the chunk with id idOfMyChunk but after reversing the commands (from the end to the begining)
 
 **piece01withExternalScript.svg**
 
