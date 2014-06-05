@@ -9,14 +9,29 @@ Full implementation soon...
 If you write a scientific paper and use that code, thank's to cite me as follow:
 
 Moissinac, J.-C.; Concolato, C.; Le Feuvre, J., "Super Path: A Necessary Primitive for Vector Graphic Formats," Advances in Multimedia (MMEDIA), 2010 Second International Conferences on , vol., no., pp.191,195, 13-19 June 2010
+
 doi: 10.1109/MMEDIA.2010.39
+
 URL: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5501583&isnumber=5501582
 
 **SuperPathExpander.js**
 
 Script which expand instances of the superpath extension to produce a standard 
-SVG 1.1 file.
-Implements L, l, Q, q, C, c
+SVG 1.1 file. Implements L, l, Q, q, C, c
+
+A typical usage is:
+
+- add this script in your svg file with the line
+```
+  <script type="application/ecmascript" xlink:href="SuperPathExpander.js" />
+```
+
+- add that code for the onload event in the main svg element
+```
+ onload="superpath.expandPaths()"
+```
+
+
 
 **piece01withExternalScript.svg**
 
