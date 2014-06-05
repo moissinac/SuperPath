@@ -14,12 +14,6 @@
   <script type="application/ecmascript" xlink:href="SuperPathExpander.js" />
   <defs
      id="defs4">
-    <filter
-       id="filter3073">
-      <feGaussianBlur
-         stdDeviation="12.375"
-         id="feGaussianBlur3075" />
-    </filter>
     <path d=" m 0,137.5 
            c 34.5,0 62.5,28 62.5,62.5 0,34.5 -28,62.5 -62.5,62.5 -34.5,0 -62.5,-28 -62.5,-62.5 0,-34.5 28,-62.5 62.5,-62.5 z" />
     <path id="p1" d="C 204.2,25 25,204.2 25,425 25,645.8 204.2,825 425,825 314.6,825 225,735.4 225,625 225,514.6 314.6,425 425,425 535.4,425 625,335.4 625,225 625,114.6 535.4,25 425,25" />
