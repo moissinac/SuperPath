@@ -215,6 +215,7 @@
     			case 't':
     			case 'a':
     			case 'z':
+    			case 'p': // superpath extension
     				return true;
     				break;
     		}
