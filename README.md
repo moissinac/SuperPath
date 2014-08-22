@@ -5,7 +5,7 @@ Proposed extension for SVG
 
 Work in progress
 
-For now, just a proof of concept, but can be useful. Full implementation an documentation soon...
+For now, just a proof of concept, but can be useful. Full implementation and documentation soon...
 
 If you write a scientific paper and use that code, thank's to cite me as follow:
 
@@ -61,3 +61,5 @@ of the chunk.
 
 Is the standard SVG file equivalent to the one obtained by execution of the
 SuperPathExpander.js/expandPaths() function in  piece01withExternalScript.svg
+
+See https://github.com/moissinac/SuperPath/wiki/Samples for more samples (which are also in the Samples directory of the repositoty)
