@@ -29,8 +29,8 @@
     version: "0.0.1"
   };
  
-   superpath.XMLRI_STRING = 1; // constant
-  superpath.XMLRI_ELEMENTID = 2; // constant
+  superpath.XMLRI_STRING = 1; // constants used to differentiate between simple string and ID 
+  superpath.XMLRI_ELEMENTID = 2; // 
   
   superpath.expandPaths = function() {
       var pathlist=document.getElementsByTagName("path");
@@ -42,6 +42,8 @@
             pathlist[i].setAttribute("d", expandPieceInPathData(pathdata));
           }
       }          
+      // TODO a similat code can be added to expand chunks used in target d value of an animate 
+      // si target d the search for # in the 'value' attribute
   }
   
   function expandPieceInPathData(data)
@@ -51,15 +53,15 @@
       var pieceref;
       while (index>0)
       {
-        //alert(newpathdata[index-1]);
         switch(command = newpathdata[index-1])
         {
-        case 'P':
+        case 'P':  // for PIECE
         case 'p':
+          // index is the begining of the id (after #), ' ' is the separator with the following 
           iripiece = svg_parse_iri(newpathdata.slice(index).split(" ")[0]);
           newpathdata=newpathdata.replace(command+iripiece.string, iripiece.target.getAttribute("d"));
           break;
-        case 'R':
+        case 'R':  // for RVERSED PIECE
         case 'r':
           iripiece = svg_parse_iri(newpathdata.slice(index).split(" ")[0]);
           newpathdata=newpathdata.replace(command+iripiece.string, reversePathData(svg_parse_path(iripiece.target.getAttribute("d"))));
@@ -73,6 +75,7 @@
   function reversePathData(cmdList)
   {
     // TODO reverse the piece (chunk) data
+    // TODO isolate the code which reverse a path then isolate the case for each command
     var newdata = "";
     var crtPt;
     // reverse the command list to build the new data
@@ -120,7 +123,7 @@
            var targetPt = cmd.parameters[2];
            newdata += "C"+ctrlPt2.x+","+ctrlPt2.y+" "+ctrlPt1.x+","+ctrlPt1.y+" "+pt.x+","+pt.y;
         break;
-        case '':
+        case '':   // default?  cmd is omited => same of the previous one 
           crtPt = cmd.current; 
           newdata += "l0,0";//"L"+crtPt.x+","+crtPt.y;
         break;        
@@ -134,11 +137,9 @@
   function svg_parse_iri(attribute_content)
   {
     var iri = new Object();
-    // alert(attribute_content);
     if (attribute_content[0] == '#') {
     iri.string = attribute_content;
     iri.target = document.getElementById(attribute_content.slice(1));
-    // alert(iri.target);
     if (!iri.target) {
     iri.type = superpath.XMLRI_STRING;
     } else {
@@ -162,6 +163,10 @@
   }
   
   // parsing path ; source inspired from canvg library
+  // TODO join the author
+  // TODO check for the following problem:
+  //  possible that doesn't work if the id of the chunk contains a cmd code and if a chunk contains a chunk
+  // recursivity and circularity of the chunk functionality must be analyzed
   function svg_parse_path(attribute_content) 
   {
     var d = attribute_content;
@@ -170,6 +175,7 @@
     
     // TODO: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
     d = d.replace(/,/gm,' '); // get rid of all commas
+    // TODO undestand why the following lines is repeted two times
     d = d.replace(/([MmZzLlHhVvCcSsQqTtAa])([MmZzLlHhVvCcSsQqTtAa])/gm,'$1 $2'); // separate commands from commands
     d = d.replace(/([MmZzLlHhVvCcSsQqTtAa])([MmZzLlHhVvCcSsQqTtAa])/gm,'$1 $2'); // separate commands from commands
     d = d.replace(/([MmZzLlHhVvCcSsQqTtAa])([^\s])/gm,'$1 $2'); // separate commands from points
