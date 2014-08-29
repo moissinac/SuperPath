@@ -83,7 +83,7 @@
     // so I need to add the current point when building the list 
     // or to replace absolutes commands by  relatives one
     var i = cmdList.length-1;
-    while (i>=0)
+    while (i>0)
     {
       var cmd = cmdList[i];
       switch(cmd.command)
@@ -124,8 +124,8 @@
            newdata += "C"+ctrlPt2.x+","+ctrlPt2.y+" "+ctrlPt1.x+","+ctrlPt1.y+" "+pt.x+","+pt.y;
         break;
         case '':   // default?  cmd is omited => same of the previous one 
-          //crtPt = cmd.current; 
-          //newdata += "l0,0";//"L"+crtPt.x+","+crtPt.y;
+          crtPt = cmd.current; 
+          newdata += "l0,0";//"L"+crtPt.x+","+crtPt.y;
         break;        
       }
       i--;
