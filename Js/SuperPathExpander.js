@@ -614,6 +614,30 @@ si un path définit un subpath
             };
         })(d);
         pp = this.PathParser;
+        cmdList.processCurrentPoints = function(startCmd) {
+            var icmd = startCmd,
+                crtCmd;
+            for (; icmd > 0; icmd -= 1) {
+            // T2D2
+            }
+        };
+        cmdList.getSubpathStartingPoint = function(id) {
+            var icmd = 0,
+                cmd;
+            for (icmd=0; this.length>icmd+1; icmd += 1) {
+                cmd = this[icmd];
+                if ((cmd.command==="(")&&(cmd.parameters[0]===id)) {
+                    if (existy(cmd.crtPt)) {
+                        return cmd.crtPt;
+                    } else {
+                    // try to process the starting point for the subpath
+                    // here it could be efficient to only start from the current cmd and reward until the first known absolute point
+                        this.processCurrentPoints(icmd);
+                    }
+                }
+            }
+            return null;
+        };
         cmdList.toString = function () {
             var i = 0,
                 ipar,
@@ -645,6 +669,8 @@ si un path définit un subpath
                 cmd.command = pp.command;
                 cmd.parameters = [];
                 cmd.parameters.push(p);
+                cmd.endPt = p;
+                cmd.absEndPt = p;
                 cmdList.push(cmd);
                 pp.start = pp.current;
                 while (!pp.isCommandOrEnd()) {
@@ -653,6 +679,12 @@ si un path définit un subpath
                     cmd.command = "L";
                     cmd.parameters = [];
                     cmd.parameters.push(p);
+                    cmd.endPt = {};
+                    cmd.endPt.x = p.x;
+                    cmd.endPt.y = p.y;
+                    cmd.absEndPt = {};
+                    cmd.absEndPt.x = p.x;
+                    cmd.absEndPt.y = p.y;
                     cmdList.push(cmd);
                 }
                 break;
@@ -665,7 +697,18 @@ si un path définit un subpath
                     cmd.command = pp.command;
                     cmd.parameters = [];
                     cmd.parameters.push(p);
-                    cmd.endPt = p;
+                    cmd.endPt = {};
+                    cmd.endPt.x = p.x;
+                    cmd.endPt.y = p.y;
+                    cmd.absEndPt = {};
+                    cmd.absEndPt.x = p.x;
+                    cmd.absEndPt.y = p.y;
+                    if (pp.isRelativeCommand(cmd.command)) {
+                        if (existy(cmdList[cmdList.length-1].absEndPt)) {
+                          cmd.absEndPt.x += cmdList[cmdList.length-1].absEndPt.x;
+                          cmd.absEndPt.y += cmdList[cmdList.length-1].absEndPt.y;
+                        }
+                    }
                     cmdList.push(cmd);
                 } while (!pp.isCommandOrEnd());
                 break;
@@ -713,6 +756,7 @@ si un path définit un subpath
                     cmd.parameters.push(cntrl1);
                     cmd.parameters.push(cntrl2);
                     cmd.parameters.push(cp);
+                    cmd.endPt = cp;
                     cmdList.push(cmd);
                 } while (!pp.isCommandOrEnd());
                 break;
@@ -752,6 +796,9 @@ si un path définit un subpath
                 descriptionsubpath = pp.getSubpathDesc();
                 cmd.parameters.push(idsubpath);
                 cmd.parameters.push(descriptionsubpath);
+                if (existy(cmdList[cmdList.length-1].absEndPt)) {
+                    cmd.crtPt = cmdList[cmdList.length-1].absEndPt; 
+                }
                 cmdList.push(cmd);
                 break;
             case '#':
