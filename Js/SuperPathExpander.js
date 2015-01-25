@@ -164,30 +164,65 @@ si un path définit un subpath
         }
         return newpathdata;
     }
+    function buildCmdList(desc, startingPt) {
+        var data = "M"+startingPt.x+","+startingPt.y+desc,
+            cmdList = superpath.svg_parse_path(data),
+            relCmdList = superpath.fullrelativePathCmdList(cmdList);
+        return relCmdList;
+    }
+    function reverseChunk(cmdList){
+        var revCmdList = [],
+            i, j;
+        revCmdList[0] = {};
+        revCmdList[0] = cmdList[0];
+        for (j=1,i=cmdList.length - 1; i > 0; i -= 1, j += 1) {
+            revCmdList[j] = {};
+            revCmdList[j] = cmdList[i];
+            revCmdList[j].parameters[0].x *= -1; // T2D2 différencier suivant la commande
+            revCmdList[j].parameters[0].y *= -1;
+        }
+        return revCmdList;
+    }    
+    function strDescription(cmdList) {
+        var str = "",
+            i,
+            cmd;
+        for (i=1; cmdList.length>i; i += 1) { // we avoid the fake M at the begining
+            cmd = cmdList[i];
+            switch(cmd.command) {
+            case 'l': 
+                str += cmd.command + cmd.parameters[0].x + "," + cmd.parameters[0].y;
+                break;
+            } 
+        }
+        return str;
+    }
     // take a data path, complete the chunk dictionnary with found chunks, and remove the chunk definition
     function findChunks(path) {
         var newpathdata = path.getAttribute("d"),
             iStart = 0,
             chunkSeparation,
             chunkName,
-            chunkDescription,
-            chunk;
+            chunk,
+            cmdList,
+            cmdIndex,
+            cmd;
         path.chunks = []; // to know chunks defined in a path
+        cmdList = path.cmdList = superpath.svg_parse_path(newpathdata);
+        cmdIndex = 0;
         do {
-            iStart = newpathdata.indexOf(superpath.OPENCHUNK, iStart);
-            if (iStart !== -1) {
-                chunkSeparation = newpathdata.indexOf(superpath.SEPARATOR, iStart);
-                chunkName = newpathdata.slice(iStart + 1, chunkSeparation);
-                chunkDescription = newpathdata.slice(chunkSeparation + 1, newpathdata.indexOf(superpath.ENDCHUNK, chunkSeparation));
-                chunk = superpath.chunks[chunkName] = {
-                };
-                chunk.description = chunkDescription;
+            cmd = cmdList[cmdIndex];
+            if (cmd.command === "(") {
+                chunkName = cmd.parameters[0];
+                chunk = superpath.chunks[chunkName] = {};
+                chunk.description = buildCmdList(cmd.parameters[1], cmd.crtPt); // list of commands
+                chunk.reversedDescription = reverseChunk(chunk.description);
                 chunk.path = path; // to know the path from which comes the chunk
-                newpathdata = newpathdata.replace(superpath.OPENCHUNK + chunkName + superpath.SEPARATOR + chunkDescription + superpath.ENDCHUNK, chunkDescription);
-                chunk.start = iStart; // start index of the chunk description in the new path
-                chunk.end = iStart + chunkDescription.length; // end index of the chunk description in the new path
+                chunk.data = strDescription(chunk.description); // T2D2 process the replacement of the ( command
+                //chunk.rData = strDescription(chunk.reverseDescription); // T2D2 process the replacement of the ( command
             }
-        } while (iStart !== -1);
+            cmdIndex += 1;
+        } while (cmdList.length>cmdIndex);
         return newpathdata;
     }
 
