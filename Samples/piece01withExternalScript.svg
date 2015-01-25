@@ -32,15 +32,12 @@
      xmlns:xlink="http://www.w3.org/1999/xlink"
      version="1.1" onload="superpath.expandPaths()">
   <title>Example piece01 - piece and reversed piece commands in path data</title>
-  <desc>Picture of a simple paving of a region with two path sharing a piece</desc>
+  <desc>Picture of a simple paving of a region with two path sharing a chunk</desc>
   <script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js" />
-  <defs>        
-    <path d="L330,150 280,230 L330,310 280,400" id="p1" />                             
-  </defs>
   <rect x="1" y="1" width="798" height="798"
     fill="none" stroke="blue" stroke-width="1" />
-  <path d="M 90,190 220,90 330,150 P#p1 120,375 z"
+  <path d="M 90,190 220,90 330,150 (p1|L330,150 280,230 L330,310 280,400) 120,375 z"
        fill="yellow" stroke="blue" stroke-width="5" />
-  <path d="M 500,385 390,460 280,400 R#p1 450,50 565,81 z"
+  <path d="M 500,385 390,460 280,400!p1|450,50 565,81 z"
        fill="red" stroke="blue" stroke-width="5" />
 </svg>
