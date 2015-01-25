@@ -34,21 +34,10 @@
    id="svg2"
      version="1.1" onload="superpath.expandPaths()">
     <script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js" />
-     <defs>
-        <path id="p3" d="C 315,825 225,735 225,625 225,514 314,425 425,425 535,425 625,335 625,225 625,114 535,25 425,25" />
-     </defs>
-      <g
-         style="fill:#0000FF  ;fill-opacity:0.8"
-         id="gYin">
-        <path
-           d="M 425,25 C 205,25 25,205 25,425 25,645.8 205,825 425,825 P#p3 z"
-           id="pathYinBG" />
+      <g style="fill:#0000FF  ;fill-opacity:0.8" >
+        <path d="M 425,25 C 205,25 25,205 25,425 25,645.8 205,825 425,825 (p3|C 315,825 225,735 225,625 225,514 314,425 425,425 535,425 625,335 625,225 625,114 535,25 425,25) z" />
       </g>
-      <g
-         style="fill:#00FFFF  ;fill-opacity:0.8"
-         id="gYin">
-        <path
-           d="M 425,825 P#p3 C 625,25 825,221 825,425 825,645.8 625,825 425,825 z"
-           id="pathYinBG" />
+      <g style="fill:#00FFFF  ;fill-opacity:0.8" >
+        <path d="M 425,825#p3|C 625,25 825,221 825,425 825,645.8 625,825 425,825 z" />
       </g>
 </svg>
