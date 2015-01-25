@@ -223,7 +223,7 @@ si un path définit un subpath
             }
         }
     };
-// TODO take chunk.start and chunk.end into account to get just the selected part of the command list
+// T2D2 take chunk.start and chunk.end into account to get just the selected part of the command list
     superpath.processReversedChunk = function (chunk) {
         if (!existy(chunk.revCmdList)) {
             if (!existy(chunk.relCmdList)) {
@@ -394,9 +394,9 @@ si un path définit un subpath
         return this.svgSerializeCmdList(cmdList);
     };
     superpath.reversePathData = function (data) {
-        // TODO reverse the piece (chunk) data as a part of a complete path, then extract the chunk
-        // TODO isolate the code which reverse a path then isolate the case for each command
-        /*  TODO
+        // T2D2 reverse the piece (chunk) data as a part of a complete path, then extract the chunk
+        // T2D2 isolate the code which reverse a path then isolate the case for each command
+        /*  T2D2
         I think i need to change all the commands to relative
         then I can get a reverse relative path
         I need to be able to find the reversed chunk associated with a chunk
@@ -476,40 +476,44 @@ si un path définit un subpath
         return newdata;
     };
     // parsing path ; source inspired from canvg library
-    // TODO join the author
-    // TODO check for the following problem:
+    // T2D2 join the author
+    // T2D2 check for the following problem:
     //  possible that doesn't work if the id of the chunk contains a cmd code and if a chunk contains a chunk
     // recursivity and circularity of the chunk functionality must be analyzed
     superpath.svg_parse_path = function (attribute_content) {
-        var d = attribute_content;
+        var d = attribute_content,
+            cmdList = [],
+            pp,
+            p,
+            newP,
+            cmd,
+            coord,
+            cntrl,
+            cntrl1,
+            cntrl2,
+            cp,
+            t,
+            idsubpath,
+            descriptionsubpath;
         this.compressSpaces = function (s) {
             return s.replace(/[\s\r\t\n]+/gm, ' ');
         };
         this.trim = function (s) {
             return s.replace(/^\s+|\s+$/g, '');
         };
-        // TODO: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
-        d = d.replace(/,/gm, ' ');
-        // get rid of all commas
-        // TODO undestand why the following lines is repeted two times
-        d = d.replace(/([MmZzLlHhVvCcSsQqTtAa])([MmZzLlHhVvCcSsQqTtAa])/gm, '$1 $2');
-        // separate commands from commands
-        d = d.replace(/([MmZzLlHhVvCcSsQqTtAa])([MmZzLlHhVvCcSsQqTtAa])/gm, '$1 $2');
-        // separate commands from commands
-        d = d.replace(/([MmZzLlHhVvCcSsQqTtAa])([^\s])/gm, '$1 $2');
-        // separate commands from points
-        d = d.replace(/([^\s])([MmZzLlHhVvCcSsQqTtAa])/gm, '$1 $2');
-        // separate commands from points
-        d = d.replace(/([0-9])([+\-])/gm, '$1 $2');
-        // separate digits when no comma
-        d = d.replace(/(\.[0-9]*)(\.)/gm, '$1 $2');
-        // separate digits when no comma
-        d = d.replace(/([Aa](\s+[0-9]+){3})\s+ ([01])\s*([01])/gm, '$1 $3 $4 ');
-        // shorthand elliptical arc path syntax
-        d = this.compressSpaces(d);
-        // compress multiple spaces
+        // T2D2: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
+        d = d.replace(/,/gm, ' '); // get rid of all commas
+        // T2D2 undestand why the following line is repeted two times
+        d = d.replace(/([MmZzLlHhVvCcSsQqTtAa(#!)])([MmZzLlHhVvCcSsQqTtAa(#!)])/gm, '$1 $2'); // separate commands from commands
+        d = d.replace(/([MmZzLlHhVvCcSsQqTtAa(#!)])([MmZzLlHhVvCcSsQqTtAa(#!)])/gm, '$1 $2'); // separate commands from commands
+        d = d.replace(/([MmZzLlHhVvCcSsQqTtAa(#!)])([^\s])/gm, '$1 $2'); // separate commands from points
+        d = d.replace(/([^\s])([MmZzLlHhVvCcSsQqTtAa(#!)])/gm, '$1 $2'); // separate commands from points
+        d = d.replace(/([0-9])([+\-])/gm, '$1 $2'); // separate digits when no comma
+        d = d.replace(/(\.[0-9]*)(\.)/gm, '$1 $2'); // separate digits when no comma
+        d = d.replace(/([Aa](\s+[0-9]+){3})\s+ ([01])\s*([01])/gm, '$1 $3 $4 '); // shorthand elliptical arc path syntax
+        d = this.compressSpaces(d); // compress multiple spaces
         d = this.trim(d);
-        this.PathParser = (function (d) {
+        this.PathParser = new (function(d) {
             this.tokens = d.split(' ');
             this.reset = function () {
                 this.i = -1;
@@ -528,7 +532,7 @@ si un path définit un subpath
                 if (this.isEnd()) {
                     return true;
                 }
-                return this.tokens[this.i + 1].match(/^[A-Za-z]$/) !== null;
+                return this.tokens[this.i + 1].match(/^[A-Za-z(#!]$/) !== null;
             };
             this.isRelativeCommand = function () {
                 switch (this.command) {
@@ -542,7 +546,10 @@ si un path définit un subpath
                 case 't':
                 case 'a':
                 case 'z':
-                case '(': // superpath extension
+                // folowing lines are for superpath extension
+                case '#':
+                case '!':
+                case '(':
                     return true;
                 }
                 return false;
@@ -550,6 +557,16 @@ si un path définit un subpath
             this.getToken = function () {
                 this.i += 1;
                 return this.tokens[this.i];
+            };
+            this.getId = function () {
+                var id = this.getToken();
+                return id.slice(0,id.indexOf("|"));
+            };
+            this.getSubpathDesc = function () {
+                var str = "";
+                var toc = "";
+                do { toc = this.getToken(); str +=  toc+" "; } while (toc !== ")");
+                return str;
             };
             this.getScalar = function () {
                 return parseFloat(this.getToken());
@@ -596,24 +613,23 @@ si un path définit un subpath
                 return p;
             };
         })(d);
-        // get a command list representation of the path
-        {
-            var pp = this.PathParser,
-            cmdList = [],
-            p,
-            newP,
-            cmd,
-            coord,
-            cntrl,
-            cntrl1,
-            cntrl2,
-            cp,
-            t;
+        pp = this.PathParser;
         cmdList.toString = function () {
             var i = 0,
+                ipar,
                 str = "";
             while (i < this.length) {
-                str += this[i].command + " " + this[i].parameters + "\n";
+                str += this[i].command;
+                if (existy(this[i].parameters)) {
+                  if (this[i].command === "(")
+                  {
+                      str += this[i].parameters[0] + "|" + this[i].parameters[1];
+                  } else {
+                    for (ipar=0; this[i].parameters.length>ipar; ipar += 1) {
+                        str+= this[i].parameters[ipar].x+","+this[i].parameters[ipar].y;
+                    }
+                  }
+                }
                 i += 1;
             }
             return str;
@@ -728,6 +744,26 @@ si un path définit un subpath
                     cmdList.push(cmd);
                 } while (!pp.isCommandOrEnd());
                 break;
+            case '(':
+                cmd = {};
+                cmd.command = pp.command;
+                cmd.parameters = [];
+                idsubpath = pp.getId();
+                descriptionsubpath = pp.getSubpathDesc();
+                cmd.parameters.push(idsubpath);
+                cmd.parameters.push(descriptionsubpath);
+                cmdList.push(cmd);
+                break;
+            case '#':
+                cmd = {};
+                cmd.command = pp.command;
+                cmdList.push(cmd);
+                break;
+            case '!':
+                cmd = {};
+                cmd.command = pp.command;
+                cmdList.push(cmd);
+                break;
             case 'T':
             case 't':
                 break;
@@ -745,7 +781,6 @@ si un path définit un subpath
                 break;
             }
         }
-            }
         return cmdList;
     };
     if (typeof define === "function" && define.amd) {
