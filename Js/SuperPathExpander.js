@@ -102,15 +102,6 @@ si un path définit un subpath
                 expanded = superpath.chunks[idChunk].description;
             }
             newpathdata = newpathdata.replace(ref, expanded);
-            delta = expanded.length - ref.length;
-            // adjust chunks indexes for chunks defined by that path (only if there are after the replace!)
-            for (iPath = 0; path.chunks.length > iPath; iPath += 1) {
-                chunk = path.chunks[iPath];
-                if (chunk.start > index) {
-                    chunk.start += delta;
-                    chunk.end += delta;
-                }
-            }
             // search for next chunk refernce in the path
             index = newpathdata.search(superpath.DIRECTREF);
         }
@@ -185,6 +176,12 @@ si un path définit un subpath
             switch(cmd.command) {
             case 'l': 
                 str += cmd.command + cmd.parameters[0].x + "," + cmd.parameters[0].y;
+                break;
+            case 'c': 
+                str += cmd.command + cmd.parameters[0].x + "," + cmd.parameters[0].y+" "+cmd.parameters[1].x + "," + cmd.parameters[1].y+" "+cmd.parameters[2].x + "," + cmd.parameters[2].y;
+                break;
+            case 'q': 
+                str += cmd.command + cmd.parameters[0].x + "," + cmd.parameters[0].y+" "+cmd.parameters[1].x + "," + cmd.parameters[1].y;
                 break;
             } 
         }
@@ -328,12 +325,23 @@ si un path définit un subpath
             case 'C':
                 cmdList.cmd[icmd].crtPt = {};
                 cmdList.cmd[icmd].command = 'c';
-                cmdList.cmd[icmd].crtPt.x = cmdList.cmd[icmd].parameters[1].x;
-                cmdList.cmd[icmd].crtPt.y = cmdList.cmd[icmd].parameters[1].y;
-                cmdList.cmd[icmd].parameters[0].x -= cmdList.cmd[icmd - 1].crtPt.x;
-                cmdList.cmd[icmd].parameters[0].y -= cmdList.cmd[icmd - 1].crtPt.y;
-                cmdList.cmd[icmd].parameters[1].x -= cmdList.cmd[icmd - 1].crtPt.x;
-                cmdList.cmd[icmd].parameters[1].y -= cmdList.cmd[icmd - 1].crtPt.y;
+                pt = {};
+                pt.x = cmdList.cmd[icmd].parameters[0].x;
+                pt.y = cmdList.cmd[icmd].parameters[0].y;
+                cmdList.cmd[icmd].parameters[0].x = pt.x - cmdList.cmd[icmd - 1].crtPt.x;
+                cmdList.cmd[icmd].parameters[0].y = pt.y - cmdList.cmd[icmd - 1].crtPt.y;
+                pt = {};
+                pt.x = cmdList.cmd[icmd].parameters[1].x;
+                pt.y = cmdList.cmd[icmd].parameters[1].y;
+                cmdList.cmd[icmd].parameters[1].x = pt.x - cmdList.cmd[icmd - 1].crtPt.x;
+                cmdList.cmd[icmd].parameters[1].y = pt.y - cmdList.cmd[icmd - 1].crtPt.y;
+                pt = {};
+                pt.x = cmdList.cmd[icmd].parameters[2].x;
+                pt.y = cmdList.cmd[icmd].parameters[2].y;
+                cmdList.cmd[icmd].parameters[2].x = pt.x - cmdList.cmd[icmd - 1].crtPt.x;
+                cmdList.cmd[icmd].parameters[2].y = pt.y - cmdList.cmd[icmd - 1].crtPt.y;
+                cmdList.cmd[icmd].crtPt.x = pt.x;
+                cmdList.cmd[icmd].crtPt.y = pt.y;
                 break;
             case 'z': //
                 break;
@@ -540,10 +548,44 @@ si un path définit un subpath
               cmd = {};
               cmd.command = this.cmd[i].command;
               cmd.parameters = [];
-              pt = {};
-              pt.x = -1 * this.cmd[i].parameters[0].x; // T2D2 différencier suivant la commande 
-              pt.y = -1 * this.cmd[i].parameters[0].y;
-              cmd.parameters.push(pt); 
+              switch(cmd.command) {
+              case 'M' :
+                  pt = {};
+                  pt.x = -1 * this.cmd[i].parameters[0].x; 
+                  pt.y = -1 * this.cmd[i].parameters[0].y;
+                  cmd.parameters.push(pt);
+                  break; 
+              case 'l' :
+                  pt = {};
+                  pt.x = -1 * this.cmd[i].parameters[0].x; // T2D2 différencier suivant la commande 
+                  pt.y = -1 * this.cmd[i].parameters[0].y;
+                  cmd.parameters.push(pt);
+                  break; 
+              case 'c' :
+                  pt = {};
+                  pt.x = -1 * this.cmd[i].parameters[0].x; 
+                  pt.y = -1 * this.cmd[i].parameters[0].y;
+                  cmd.parameters.push(pt);
+                  pt = {};
+                  pt.x = -1 * this.cmd[i].parameters[1].x; 
+                  pt.y = -1 * this.cmd[i].parameters[1].y;
+                  cmd.parameters.push(pt);
+                  pt = {};
+                  pt.x = -1 * this.cmd[i].parameters[2].x; 
+                  pt.y = -1 * this.cmd[i].parameters[2].y;
+                  cmd.parameters.push(pt);
+                  break; 
+              case 'q' :
+                  pt = {};
+                  pt.x = -1 * this.cmd[i].parameters[0].x; 
+                  pt.y = -1 * this.cmd[i].parameters[0].y;
+                  cmd.parameters.push(pt);
+                  pt = {};
+                  pt.x = -1 * this.cmd[i].parameters[1].x; 
+                  pt.y = -1 * this.cmd[i].parameters[1].y;
+                  cmd.parameters.push(pt);
+                  break; 
+              }
               revCmdList.push(cmd);
           }
           return revCmdList;
@@ -563,7 +605,7 @@ si un path définit un subpath
                       str += this.cmd[i].parameters[0] + "|" + this.cmd[i].parameters[1] +")";
                   } else {
                     for (ipar=0; this.cmd[i].parameters.length>ipar; ipar += 1) {
-                        str+= this.cmd[i].parameters[ipar].x+","+this.cmd[i].parameters[ipar].y;
+                        str+= (ipar>0?" ":"") + this.cmd[i].parameters[ipar].x + "," + this.cmd[i].parameters[ipar].y;
                     }
                   }
                 }
@@ -778,6 +820,15 @@ si un path définit un subpath
                     cmd.parameters = [];
                     cmd.parameters.push((pp.isRelativeCommand() ? pp.current.x : 0) + coord);
                     cmd.endPt = newP;
+                    cmd.absEndPt = {};
+                    cmd.absEndPt.x = newP.x;
+                    cmd.absEndPt.y = newP.y;
+                    if (pp.isRelativeCommand(cmd.command)) {
+                        if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
+                          cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length-1].absEndPt.x;
+                          cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length-1].absEndPt.y;
+                        }
+                    }
                     cmdList.push(cmd);
                 } while (!pp.isCommandOrEnd());
                 break;
@@ -793,6 +844,15 @@ si un path définit un subpath
                     cmd.parameters = [];
                     cmd.parameters.push((pp.isRelativeCommand() ? pp.current.x : 0) + coord);
                     cmd.endPt = newP;
+                    cmd.absEndPt = {};
+                    cmd.absEndPt.x = newP.x;
+                    cmd.absEndPt.y = newP.y;
+                    if (pp.isRelativeCommand(cmd.command)) {
+                        if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
+                          cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length-1].absEndPt.x;
+                          cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length-1].absEndPt.y;
+                        }
+                    }
                     cmdList.push(cmd);
                 } while (!pp.isCommandOrEnd());
                 break;
@@ -810,6 +870,15 @@ si un path définit un subpath
                     cmd.parameters.push(cntrl2);
                     cmd.parameters.push(cp);
                     cmd.endPt = cp;
+                    cmd.absEndPt = {};
+                    cmd.absEndPt.x = cp.x;
+                    cmd.absEndPt.y = cp.y;
+                    if (pp.isRelativeCommand(cmd.command)) {
+                        if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
+                          cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length-1].absEndPt.x;
+                          cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length-1].absEndPt.y;
+                        }
+                    }
                     cmdList.push(cmd);
                 } while (!pp.isCommandOrEnd());
                 break;
@@ -838,6 +907,15 @@ si un path définit un subpath
                     cmd.parameters.push(cntrl);
                     cmd.parameters.push(cp);
                     cmd.endPt = cp;
+                    cmd.absEndPt = {};
+                    cmd.absEndPt.x = cp.x;
+                    cmd.absEndPt.y = cp.y;
+                    if (pp.isRelativeCommand(cmd.command)) {
+                        if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
+                          cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length-1].absEndPt.x;
+                          cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length-1].absEndPt.y;
+                        }
+                    }
                     cmdList.push(cmd);
                 } while (!pp.isCommandOrEnd());
                 break;
