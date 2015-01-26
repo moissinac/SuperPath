@@ -1,3 +1,15 @@
+QUnit.test( "Test parsing path data with superpath definition extension with C (minimal data set)", function( assert ) {
+    var data = "M 425,25 C 205,25 25,205 25,425";
+    var cmdList = superpath.svg_parse_path(data);
+    var relCmdList = superpath.fullrelativePathCmdList(cmdList);
+    assert.equal( relCmdList.toString(), "M425,25c-220,0 -400,180 -400,400", "Passed!");
+});
+QUnit.test( "Test parsing path data with superpath definition extension with C", function( assert ) {
+    var data = "M 425,25 C 205,25 25,205 25,425 25,645.8 205,825 425,825 (p3|C 315,825 225,735 225,625 225,514 314,425 425,425 535,425 625,335 625,225 625,114 535,25 425,25) z";
+    var cmdList = superpath.svg_parse_path(data);
+    var relCmdList = superpath.fullrelativePathCmdList(cmdList);
+    assert.equal( relCmdList.toString(), "M425,25c-220,0 -400,180 -400,400c0,220.79999999999995 180,400 400,400(p3|C315 825 225 735 225 625 225 514 314 425 425 425 535 425 625 335 625 225 625 114 535 25 425 25 )z", "Passed!");
+});
 QUnit.test( "Test building command list from data", function( assert ) {
   var desc = "l0,0l-50,80l50,80 -50,80", 
       startingPt,
@@ -41,12 +53,10 @@ QUnit.test( "Test building command list from data and transform to relative and 
   assert.equal( revCmdList.toString(), "l50,-80l-50,-80l50,-80l0,0M-330,-150", "Passed!" );
 });
 QUnit.test( "Test elementary path reversion", function( assert ) {
-  //var sp = new superpath();
   var newdata = superpath.reversePathData("M 90,190L220,90");
   assert.equal( newdata, "M220,90L90,190", "Passed!" );
 });
 QUnit.test( "Test path reversion", function( assert ) {
-  //var sp = new superpath();
   var newdata = superpath.reversePathData("M 90,190 220,90 330,150 L330,150 280,230 L330,310 280,400 120,375 z");
   assert.equal( newdata, "M120,375L280,400L330,310L280,230L330,150L330,150L220,90L90,190z", "Passed!" );
 });
