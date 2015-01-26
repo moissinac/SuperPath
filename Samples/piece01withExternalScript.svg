@@ -36,8 +36,8 @@
   <script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js" />
   <rect x="1" y="1" width="798" height="798"
     fill="none" stroke="blue" stroke-width="1" />
-  <path d="M 90,190 220,90 330,150 (p1|L330,150 280,230 L330,310 280,400) 120,375 z"
+  <path d="M 90,190 220,90 330,150 (p1|L330,150 280,230 L330,310 280,400)L120,375 z"
        fill="yellow" stroke="blue" stroke-width="5" />
-  <path d="M 500,385 390,460 280,400!p1|450,50 565,81 z"
+  <path d="M 500,385 390,460 280,400!p1|L450,50 565,81 z"
        fill="red" stroke="blue" stroke-width="5" />
 </svg>
