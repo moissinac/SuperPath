@@ -560,7 +560,7 @@ si un path définit un subpath
                 if (existy(this.cmd[i].parameters)) {
                   if (this.cmd[i].command === "(")
                   {
-                      str += this.cmd[i].parameters[0] + "|" + this.cmd[i].parameters[1];
+                      str += this.cmd[i].parameters[0] + "|" + this.cmd[i].parameters[1] +")";
                   } else {
                     for (ipar=0; this.cmd[i].parameters.length>ipar; ipar += 1) {
                         str+= this.cmd[i].parameters[ipar].x+","+this.cmd[i].parameters[ipar].y;
