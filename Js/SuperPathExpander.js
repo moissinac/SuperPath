@@ -25,6 +25,8 @@
  *
 Hypothesis:
 after a ref, there is always an explicit command
+a chunk definition can't contain a chunk definition or reference
+
 Algo (to do):
 1) build a table D of path with (
 2) build a table R of path with #
@@ -41,6 +43,7 @@ start from the ( and go backward until finding either a command with an absolute
 if I encounter a ), I can't transform the current chunk until that previous reference will be solved
 if I find an absEndPt, I can propagate the absolute knowledge until the begining of the current chunk and solve it
  
+previous proposal was
 1) build a dictionnary of subpath definition
 2) build a list of used subpath in each path
 3) replace the reference of all directly defined subpath
@@ -49,10 +52,8 @@ if I find an absEndPt, I can propagate the absolute knowledge until the begining
 4.2) build the reverse of the relative path
 4.3) extract the reverse subpath
 4.4) replace all references of the reverse subpath
-
-T2D2
-remove the parameters array in the CmdList object and replace it by properties with more explicit semantic
 but for 4.2, I need to have a completely defined path: how to deal with path where a path is defined but is followed by a reference to a reverse subpath???
+
 
 questions:
 Q1: what appends if a content try to define several chunks with the same id
@@ -206,13 +207,13 @@ si un path définit un subpath
             cmd = cmdList.cmd[i];
             switch(cmd.command) {
             case 'l': 
-                str += cmd.command + cmd.parameters[0].x + "," + cmd.parameters[0].y;
+                str += cmd.command + cmd.target.x + "," + cmd.target.y;
                 break;
             case 'c': 
-                str += cmd.command + cmd.parameters[0].x + "," + cmd.parameters[0].y+" "+cmd.parameters[1].x + "," + cmd.parameters[1].y+" "+cmd.parameters[2].x + "," + cmd.parameters[2].y;
+                str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y+" "+cmd.ctlpt2.x + "," + cmd.ctlpt2.y+" "+cmd.target.x + "," + cmd.target.y;
                 break;
             case 'q': 
-                str += cmd.command + cmd.parameters[0].x + "," + cmd.parameters[0].y+" "+cmd.parameters[1].x + "," + cmd.parameters[1].y;
+                str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y+" "+cmd.target.x + "," + cmd.target.y;
                 break;
             } 
         }
@@ -234,9 +235,9 @@ si un path définit un subpath
         do {
             cmd = cmdList.cmd[cmdIndex];
             if (cmd.command === "(") {
-                chunkName = cmd.parameters[0];
+                chunkName = cmd.chunkName;
                 chunk = superpath.chunks[chunkName] = {};
-                chunk.description = buildCmdList(cmd.parameters[1], cmd.crtPt); // list of commands
+                chunk.description = buildCmdList(cmd.strDescription, cmd.crtPt); // list of commands
                 chunk.reversedDescription = buildReversedCmdList(chunk.description);
                 chunk.path = path; // to know the path from which comes the chunk
                 chunk.data = strDescription(chunk.description);
@@ -294,8 +295,8 @@ si un path définit un subpath
             icmd = 0,
             len = cmdList.cmd.length,
             pt;
-        crtPt.x = cmdList.cmd[0].parameters[0].x;
-        crtPt.y = cmdList.cmd[0].parameters[0].y;
+        crtPt.x = cmdList.cmd[0].target.x;
+        crtPt.y = cmdList.cmd[0].target.y;
         while (len > icmd) {
             // pour chaque commande passer en relatif et calculer le nouveau point courant
             console.log(cmdList.cmd[icmd].command);
@@ -306,14 +307,13 @@ si un path définit un subpath
                 cmd = {};
                 cmd.command = 'v';
                 cmd.crtPt = {};
-                cmd.parameters = [];
                 pt = {};
                 cmd.crtPt.x = pt.x = revCmdList.cmd[icmd - 1].crtPt.x;
-                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].parameters[0];
+                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].d;
                 if (crtcmdcode==='V') {
                     pt.y -= revCmdList.cmd[icmd - 1].crtPt.y; 
                 }
-                cmd.parameters.push(pt.y);
+                cmd.d = pt.y;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'h':
@@ -321,14 +321,13 @@ si un path définit un subpath
                 cmd = {};
                 cmd.command = 'h';
                 cmd.crtPt = {};
-                cmd.parameters = [];
                 pt = {};
-                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].parameters[0];
+                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].d;
                 cmd.crtPt.y = pt.y = revCmdList.cmd[icmd - 1].crtPt.y;
                 if (crtcmdcode==='H') {
                     pt.x -= revCmdList.cmd[icmd - 1].crtPt.x; 
                 }
-                cmd.parameters.push(pt.x);
+                cmd.d = pt.x;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'm': // T2D2 check for relative move
@@ -337,10 +336,9 @@ si un path définit un subpath
                 cmd.crtPt = {};
                 pt = {};
                 cmd.command = 'M';
-                cmd.parameters = [];
-                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].parameters[0].x;
-                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].parameters[0].y;
-                cmd.parameters.push(pt);
+                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].target.x;
+                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].target.y;
+                cmd.target = pt;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'L':
@@ -348,30 +346,28 @@ si un path définit un subpath
                 cmd = {};
                 cmd.command = 'l';
                 cmd.crtPt = {};
-                cmd.parameters = [];
                 pt = {};
-                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].parameters[0].x;
-                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].parameters[0].y;
+                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].target.x;
+                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].target.y;
                 if (crtcmdcode==='L') {
                     pt.x -= revCmdList.cmd[icmd - 1].crtPt.x; 
                     pt.y -= revCmdList.cmd[icmd - 1].crtPt.y; 
                 }
-                cmd.parameters.push(pt);
+                cmd.target = pt;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'q':
             case 'Q':
                 cmd = {};
                 cmd.crtPt = {};
-                cmd.parameters = [];
                 endpt = {};
                 ctlpt1 = {};
                 ctlpt2 = {};
                 cmd.command = 'q';
-                ctlpt1.x = cmdList.cmd[icmd].parameters[0].x;
-                ctlpt1.y = cmdList.cmd[icmd].parameters[0].y;
-                cmd.crtPt.x = endpt.x = cmdList.cmd[icmd].parameters[1].x;
-                cmd.crtPt.y = endpt.y = cmdList.cmd[icmd].parameters[1].y;
+                ctlpt1.x = cmdList.cmd[icmd].ctlpt1.x;
+                ctlpt1.y = cmdList.cmd[icmd].ctlpt1.y;
+                cmd.crtPt.x = endpt.x = cmdList.cmd[icmd].target.x;
+                cmd.crtPt.y = endpt.y = cmdList.cmd[icmd].target.y;
                 if (crtcmdcode==='Q')
                 {
                     ctlpt1.x -= revCmdList.cmd[icmd - 1].crtPt.x;
@@ -379,25 +375,24 @@ si un path définit un subpath
                     endpt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
                     endpt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                 }
-                cmd.parameters.push(ctlpt1);
-                cmd.parameters.push(endpt);
+                cmd.ctlpt1 = ctlpt1;
+                cmd.target = endpt;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'c':
             case 'C':
                 cmd = {};
                 cmd.crtPt = {};
-                cmd.parameters = [];
                 endpt = {};
                 ctlpt1 = {};
                 ctlpt2 = {};
                 cmd.command = 'c';
-                ctlpt1.x = cmdList.cmd[icmd].parameters[0].x;
-                ctlpt1.y = cmdList.cmd[icmd].parameters[0].y;
-                ctlpt2.x = cmdList.cmd[icmd].parameters[1].x;
-                ctlpt2.y = cmdList.cmd[icmd].parameters[1].y;
-                cmd.crtPt.x = endpt.x = cmdList.cmd[icmd].parameters[2].x;
-                cmd.crtPt.y = endpt.y = cmdList.cmd[icmd].parameters[2].y;
+                ctlpt1.x = cmdList.cmd[icmd].ctlpt1.x;
+                ctlpt1.y = cmdList.cmd[icmd].ctlpt1.y;
+                ctlpt2.x = cmdList.cmd[icmd].ctlpt2.x;
+                ctlpt2.y = cmdList.cmd[icmd].ctlpt2.y;
+                cmd.crtPt.x = endpt.x = cmdList.cmd[icmd].target.x;
+                cmd.crtPt.y = endpt.y = cmdList.cmd[icmd].target.y;
                 if (crtcmdcode==='C')
                 {
                     ctlpt1.x -= revCmdList.cmd[icmd - 1].crtPt.x;
@@ -407,17 +402,16 @@ si un path définit un subpath
                     endpt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
                     endpt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                 }
-                cmd.parameters.push(ctlpt1);
-                cmd.parameters.push(ctlpt2);
-                cmd.parameters.push(endpt);
+                cmd.ctlpt1 = ctlpt1;
+                cmd.ctlpt2 = ctlpt2;
+                cmd.target = endpt;
                 revCmdList.cmd.push(cmd);
                 break;
             case '(': 
                 cmd = {};
                 cmd.command = '(';
-                cmd.parameters = [];
-                cmd.parameters.push(cmdList.cmd[icmd].parameters[0]);
-                cmd.parameters.push(cmdList.cmd[icmd].parameters[1]);
+                cmd.chunkName = cmdList.cmd[icmd].chunkName;
+                cmd.strDescription = cmdList.cmd[icmd].strDescription;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'z': //
@@ -457,12 +451,12 @@ si un path définit un subpath
         // or to replace absolutes commands by  relatives one
         i = cmdList.cmd.length - 1;
         if (cmdList.cmd[i].command === 'z') {
-            crtPt = cmdList.cmd[i - 1].parameters[0];
+            crtPt = cmdList.cmd[i - 1].target;
             newdata += "M" + crtPt.x + "," + crtPt.y;
             closedPath = true;
             i -= 1;
         } else {
-            crtPt = cmdList.cmd[i].parameters[0];
+            crtPt = cmdList.cmd[i].target;
             newdata += "M" + crtPt.x + "," + crtPt.y;
         }
         while (i > 0) {
@@ -470,28 +464,28 @@ si un path définit un subpath
             previousCmd = cmdList.cmd[i - 1];
             switch (cmd.command) {
             case 'l':
-                pt = cmd.parameters[0];
+                pt = cmd.target;
                 newdata += "l" + (-1.0 * pt.x) + "," + (-1.0 * pt.y);
                 break;
             case 'L':
-                pt = previousCmd.parameters[0];
+                pt = previousCmd.target;
                 newdata += "L" + pt.x + "," + pt.y;
                 break;
             case 'q':
-                ctrlPt = cmd.parameters[0];
-                targetPt = cmd.parameters[1];
+                ctrlPt = cmd.ctlpt1;
+                targetPt = cmd.target;
                 newdata += "q" + (-targetPt.x + ctrlPt.x) + "," + (-targetPt.y + ctrlPt.y) + " " + (-1.0 * targetPt.x) + "," + (-1.0 * targetPt.y);
                 break;
             case 'Q':
                 pt = cmdList.cmd[i - 1].endPt;
-                ctrlPt = cmd.parameters[0];
-                targetPt = cmd.parameters[1];
+                ctrlPt = cmd.ctlpt1;
+                targetPt = cmd.target;
                 newdata += "Q" + ctrlPt.x + "," + ctrlPt.y + " " + pt.x + "," + pt.y;
                 break;
             case 'c':
-                ctrlPt1 = cmd.parameters[0];
-                ctrlPt2 = cmd.parameters[1];
-                targetPt = cmd.parameters[2];
+                ctrlPt1 = cmd.ctlpt1;
+                ctrlPt2 = cmd.ctlpt2;
+                targetPt = cmd.target;
                 newdata += "c" +
                     (-targetPt.x + ctrlPt2.x) + "," + (-targetPt.y + ctrlPt2.y) + " " +
                     (-targetPt.x + ctrlPt1.x) + "," + (-targetPt.y + ctrlPt1.y) + " " +
@@ -499,9 +493,9 @@ si un path définit un subpath
                 break;
             case 'C':
                 pt = cmdList.cmd[i - 1].endPt;
-                ctrlPt1 = cmd.parameters[0];
-                ctrlPt2 = cmd.parameters[1];
-                targetPt = cmd.parameters[2];
+                ctrlPt1 = cmd.ctlpt1;
+                ctrlPt2 = cmd.ctlpt2;
+                targetPt = cmd.target;
                 newdata += "C" + ctrlPt2.x + "," + ctrlPt2.y + " " + ctrlPt1.x + "," + ctrlPt1.y + " " + pt.x + "," + pt.y;
                 break;
             case 'z': //
@@ -526,7 +520,7 @@ si un path définit un subpath
                 cmd;
             for (icmd=0; this.cmd.length>icmd+1; icmd += 1) {
                 cmd = this.cmd[icmd];
-                if ((cmd.command==="(")&&(cmd.parameters[0]===id)) {
+                if ((cmd.command==="(")&&(cmd.chunkName===id)) {
                     if (existy(cmd.crtPt)) {
                         return cmd.crtPt;
                     } else {
@@ -548,53 +542,52 @@ si un path définit un subpath
           for (i=this.cmd.length - 1; i >= 0; i -= 1) {
               cmd = {};
               cmd.command = this.cmd[i].command;
-              cmd.parameters = [];
               switch(cmd.command) {
               case 'M' :
                   pt = {};
-                  pt.x = -1 * this.cmd[i].parameters[0].x; 
-                  pt.y = -1 * this.cmd[i].parameters[0].y;
-                  cmd.parameters.push(pt);
+                  pt.x = -1 * this.cmd[i].target.x; 
+                  pt.y = -1 * this.cmd[i].target.y;
+                  cmd.target = pt;
                   break; 
               case 'h' :
               case 'v' :
-                  cmd.parameters.push(-1 * this.cmd[i].parameters[0]);
+                  cmd.d = -1 * this.cmd[i].d;
                   break; 
               case 'l' :
                   pt = {};
-                  pt.x = -1 * this.cmd[i].parameters[0].x; // T2D2 différencier suivant la commande 
-                  pt.y = -1 * this.cmd[i].parameters[0].y;
-                  cmd.parameters.push(pt);
+                  pt.x = -1 * this.cmd[i].target.x; // T2D2 différencier suivant la commande 
+                  pt.y = -1 * this.cmd[i].target.y;
+                  cmd.target = pt;
                   break; 
               case 'c' :
                   target = {};
-                  target.x = this.cmd[i].parameters[2].x; 
-                  target.y = this.cmd[i].parameters[2].y; 
+                  target.x = this.cmd[i].target.x; 
+                  target.y = this.cmd[i].target.y; 
                   pt = {};
-                  pt.x = this.cmd[i].parameters[1].x - target.x; 
-                  pt.y = this.cmd[i].parameters[1].y - target.y;
-                  cmd.parameters.push(pt);
+                  pt.x = this.cmd[i].ctlpt2.x - target.x; 
+                  pt.y = this.cmd[i].ctlpt2.y - target.y;
+                  cmd.ctlpt1 = pt;
                   pt = {};
-                  pt.x = this.cmd[i].parameters[0].x - target.x; 
-                  pt.y = this.cmd[i].parameters[0].y - target.y;
-                  cmd.parameters.push(pt);
+                  pt.x = this.cmd[i].ctlpt1.x - target.x; 
+                  pt.y = this.cmd[i].ctlpt1.y - target.y;
+                  cmd.ctlpt2 = pt;
                   pt = {};
                   pt.x = -1 * target.x; 
                   pt.y = -1 * target.y;
-                  cmd.parameters.push(pt);
+                  cmd.target = pt;
                   break; 
               case 'q' :
                   target = {};
-                  target.x = this.cmd[i].parameters[1].x; 
-                  target.y = this.cmd[i].parameters[1].y; 
+                  target.x = this.cmd[i].target.x; 
+                  target.y = this.cmd[i].target.y; 
                   pt = {};
-                  pt.x = this.cmd[i].parameters[0].x - target.x; 
-                  pt.y = this.cmd[i].parameters[0].y - target.y;
-                  cmd.parameters.push(pt);
+                  pt.x = this.cmd[i].ctlpt1.x - target.x; 
+                  pt.y = this.cmd[i].ctlpt1.y - target.y;
+                  cmd.ctlpt1 = pt;
                   pt = {};
                   pt.x = -1 * target.x; 
                   pt.y = -1 * target.y;
-                  cmd.parameters.push(pt);
+                  cmd.target = pt;
                   break; 
               }
               revCmdList.push(cmd);
@@ -608,25 +601,27 @@ si un path définit un subpath
           // T2D2 process all the possible commands 
             var i = 0,
                 ipar,
-                str = "";
+                str = "",
+                cmd;
             while (this.cmd.length>i) {
-                str += this.cmd[i].command;
-                if (existy(this.cmd[i].parameters)) {
-                  switch (this.cmd[i].command) {
-                  case "(":
-                      str += this.cmd[i].parameters[0] + "|" + this.cmd[i].parameters[1] +")";
-                      break;
-                  case "h":
-                  case "v":
-                  case "H":
-                  case "V":
-                      str += this.cmd[i].parameters[0];
-                      break;
-                  default:
-                      for (ipar=0; this.cmd[i].parameters.length>ipar; ipar += 1) {
-                        str+= (ipar>0?" ":"") + this.cmd[i].parameters[ipar].x + "," + this.cmd[i].parameters[ipar].y;
-                      }
-                  }
+              cmd = this.cmd[i];
+              str += cmd.command;
+                switch (cmd.command) {
+                case "(":
+                    str += cmd.chunkName + "|" + cmd.strDescription +")";
+                    break;
+                case "h":
+                case "v":
+                case "H":
+                case "V":
+                    str += cmd.d;
+                    break;
+                case "z": break;
+                default:
+                    if (existy(cmd.ctlpt1)) str+= cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " ";
+                    if (existy(cmd.ctlpt2)) str+= cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " ";
+                    if (existy(cmd.target)) str+= cmd.target.x + "," + cmd.target.y;
+                    break;  
                 }
                 i += 1;
             }
@@ -635,6 +630,7 @@ si un path définit un subpath
     }
     // parsing path ; source inspired from canvg library
     // T2D2 join the author
+    // T2D2 to complete for the A T and S commands
     // T2D2 check for the following problem:
     //  possible that doesn't work if the id of the chunk contains a cmd code and if a chunk contains a chunk
     // recursivity and circularity of the chunk functionality must be analyzed
@@ -717,7 +713,12 @@ si un path définit un subpath
                 return this.tokens[this.i];
             };
             this.getSubpathRefId = function () {
-                var id = this.getToken();
+                var id = "";
+                do {
+                    id += this.getToken();
+                } while (id.indexOf("|")===-1);
+                // remove spaces coming from the initial code of the parser which segments the tokens
+                while (id.indexOf(" ")!== -1) { id = id.replace(" ", ""); };
                 return id.slice(0,id.indexOf("|"));
             };
             this.getSubpathDesc = function () {
@@ -781,8 +782,7 @@ si un path définit un subpath
                 p = pp.getAsCurrentPoint(pp.isRelativeCommand());
                 cmd = {};
                 cmd.command = pp.command;
-                cmd.parameters = [];
-                cmd.parameters.push(p);
+                cmd.target = p;
                 cmd.endPt = p;
                 cmd.absEndPt = p;
                 cmdList.push(cmd);
@@ -791,8 +791,7 @@ si un path définit un subpath
                     p = pp.getAsCurrentPoint(pp.isRelativeCommand());
                     cmd = {};
                     cmd.command = "L";
-                    cmd.parameters = [];
-                    cmd.parameters.push(p);
+                    cmd.target = p;
                     cmd.endPt = {};
                     cmd.endPt.x = p.x;
                     cmd.endPt.y = p.y;
@@ -809,8 +808,7 @@ si un path définit un subpath
                     cmd.current = pp.current;
                     p = pp.getAsCurrentPoint(pp.isRelativeCommand());
                     cmd.command = pp.command;
-                    cmd.parameters = [];
-                    cmd.parameters.push(p);
+                    cmd.target = p;
                     cmd.endPt = {};
                     cmd.endPt.x = p.x;
                     cmd.endPt.y = p.y;
@@ -836,8 +834,7 @@ si un path définit un subpath
                     newP = new pp.Point((pp.isRelativeCommand() ? pp.current.x : 0) + coord, pp.current.y);
                     pp.current = newP;
                     cmd.command = pp.command;
-                    cmd.parameters = [];
-                    cmd.parameters.push((pp.isRelativeCommand() ? pp.current.x : 0) + coord);
+                    cmd.d = (pp.isRelativeCommand() ? pp.current.x : 0) + coord;
                     cmd.endPt = newP;
                     cmd.absEndPt = {};
                     cmd.absEndPt.x = newP.x;
@@ -860,8 +857,7 @@ si un path définit un subpath
                     newP = new pp.Point(pp.current.x, (pp.isRelativeCommand() ? pp.current.y : 0) + coord);
                     pp.current = newP;
                     cmd.command = pp.command;
-                    cmd.parameters = [];
-                    cmd.parameters.push((pp.isRelativeCommand() ? pp.current.x : 0) + coord);
+                    cmd.d = (pp.isRelativeCommand() ? pp.current.x : 0) + coord;
                     cmd.endPt = newP;
                     cmd.absEndPt = {};
                     cmd.absEndPt.x = newP.x;
@@ -884,10 +880,9 @@ si un path définit un subpath
                     cntrl2 = pp.getAsControlPoint(pp.isRelativeCommand());
                     cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
                     cmd.command = pp.command;
-                    cmd.parameters = [];
-                    cmd.parameters.push(cntrl1);
-                    cmd.parameters.push(cntrl2);
-                    cmd.parameters.push(cp);
+                    cmd.ctlpt1 = cntrl1;
+                    cmd.ctlpt2 = cntrl2;
+                    cmd.target = cp;
                     cmd.endPt = cp;
                     cmd.absEndPt = {};
                     cmd.absEndPt.x = cp.x;
@@ -922,9 +917,8 @@ si un path définit un subpath
                     cntrl = pp.getAsControlPoint(pp.isRelativeCommand());
                     cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
                     cmd.command = pp.command;
-                    cmd.parameters = [];
-                    cmd.parameters.push(cntrl);
-                    cmd.parameters.push(cp);
+                    cmd.ctlpt1 = cntrl;
+                    cmd.target = cp;
                     cmd.endPt = cp;
                     cmd.absEndPt = {};
                     cmd.absEndPt.x = cp.x;
@@ -941,11 +935,10 @@ si un path définit un subpath
             case '(':
                 cmd = {};
                 cmd.command = pp.command;
-                cmd.parameters = [];
                 idsubpath = pp.getSubpathRefId();
                 descriptionsubpath = pp.getSubpathDesc();
-                cmd.parameters.push(idsubpath);
-                cmd.parameters.push(descriptionsubpath);  // T2D2 replace it by a list of commands??
+                cmd.chunkName = idsubpath;
+                cmd.strDescription = descriptionsubpath;  // T2D2 replace it by a list of commands??
                 if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
                     cmd.crtPt = cmdList.cmd[cmdList.cmd.length-1].absEndPt; 
                 }
@@ -971,13 +964,13 @@ si un path définit un subpath
                     cmd.current = pp.current;
                     cmd.command = pp.command;
                     cmdList.push(cmd);
-                } while (!pp.isCommandOrEnd());
+                } while (!pp.isCommandOrEnd()); // T2D2 verify this strange while
                 break;
             }
         }
         return cmdList;
     };
-    // T2D2 I need to understand the following lines (copied from other code)
+    // T2D2 I need to understand the following lines (inspired from code of other modules)
     if (typeof define === "function" && define.amd) {
         define(superpath);
     } else if (typeof module === "object" && module.exports) {
