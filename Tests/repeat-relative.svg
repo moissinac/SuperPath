@@ -5,8 +5,8 @@
 	<script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js"></script>
 	<defs>
 		<!-- Paths made with relative commands -->
-		<path id="p1" d="m0,0(p1|l100,0)"/>
-		<path id="p2" d="m0,0(p2|c0,50 100,50 100,0)"/>
+		<path id="relativeLine" d="m0,0(relativeLine|l100,0)"/>
+		<path id="relativeCubic" d="m0,0(relativeCubic|c0,50 100,50 100,0)"/>
 
 		<!-- markers used to see the segments and orientations of the paths -->
 		<marker id="Square" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto">
@@ -19,23 +19,23 @@
 		</defs>
 	<g fill="none" stroke-width="2" stroke-opacity="0.5" marker-start="url(#Square)" marker-mid="url(#Square)" marker-end="url(#Triangle)">
 		<!-- single use -->
-		<path stroke="black" d="M   0, 10#p1|"/>
-		<path stroke="red"   d="M 500,490!p1|"/>
-		<path stroke="black" d="M   0, 90#p2|"/>
-		<path stroke="red"   d="M 500,410!p2|"/>
+		<path stroke="black" d="M   0, 10#relativeLine|"/>
+		<path stroke="red"   d="M 500,490!relativeLine|"/>
+		<path stroke="black" d="M   0, 90#relativeCubic|"/>
+		<path stroke="red"   d="M 500,410!relativeCubic|"/>
 
 		<!-- repetitions -->
 		<!-- repetitions no in-between commands -->
-		<path stroke="black" d="M   0, 30#p1| #p1|#p1| #p1|"/>
-		<path stroke="red"   d="M 500,470!p1| !p1|!p1| !p1|"/>
-		<path stroke="black" d="M   0,120#p2|#p2|#p2|#p2|"/>
-		<path stroke="red"   d="M 500,380!p2|!p2|!p2|!p2|"/>
+		<path stroke="black" d="M   0, 30#relativeLine| #relativeLine|#relativeLine| #relativeLine|"/>
+		<path stroke="red"   d="M 500,470!relativeLine| !relativeLine|!relativeLine| !relativeLine|"/>
+		<path stroke="black" d="M   0,120#relativeCubic|#relativeCubic|#relativeCubic|#relativeCubic|"/>
+		<path stroke="red"   d="M 500,380!relativeCubic|!relativeCubic|!relativeCubic|!relativeCubic|"/>
 
 		<!-- repetitions with in-between commands -->
-		<path stroke="black" d="M   0, 50#p1|v10#p1|v10#p1|v10#p1|"/>
-		<path stroke="red"   d="M 500,450!p1|v-10!p1|v-10!p1|v-10!p1|"/>
-		<path stroke="black" d="M   0,150#p2|v10#p2|v10#p2|v10#p2|"/>
-		<path stroke="red"   d="M 500,350!p2|v-10!p2|v-10!p2|v-10!p2|"/>
+		<path stroke="black" d="M   0, 50#relativeLine|v10#relativeLine|v10#relativeLine|v10#relativeLine|"/>
+		<path stroke="red"   d="M 500,450!relativeLine|v-10!relativeLine|v-10!relativeLine|v-10!relativeLine|"/>
+		<path stroke="black" d="M   0,150#relativeCubic|v10#relativeCubic|v10#relativeCubic|v10#relativeCubic|"/>
+		<path stroke="red"   d="M 500,350!relativeCubic|v-10!relativeCubic|v-10!relativeCubic|v-10!relativeCubic|"/>
 	</g>
 </svg>
 
