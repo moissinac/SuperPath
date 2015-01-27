@@ -25,7 +25,22 @@
  *
 Hypothesis:
 after a ref, there is always an explicit command
-Method:
+Algo (to do):
+1) build a table D of path with (
+2) build a table R of path with #
+3) build a table I of path with !
+4) while something has changed, do the following steps
+a) for each path in the table D, process the path to get the usable version of each chunk if posssible (see below) and replace the command definition by the usable chunk
+b) for each path in the table R, expand the referenced chunks if the definition is usable and then remove the path from R table (if no other ref remains)
+c) for each path in the table I, expand the referenced chunks if the definition is usable and then remove the path from R table (if no other ref remains)
+if we come out the while and some path remains in the tables D, R or I, the content is problematic
+
+to get the usable version of each chunk:
+if all the commands of the chunk are relative, I have quite nothing to do (perhaps just preprocess the reverse chunk)
+start from the ( and go backward until finding either a command with an absolute end point (absEndPt) or an absolute command (which gives us the corresponding absEndPt)
+if I encounter a ), I can't transform the current chunk until that previous reference will be solved
+if I find an absEndPt, I can propagate the absolute knowledge until the begining of the current chunk and solve it
+ 
 1) build a dictionnary of subpath definition
 2) build a list of used subpath in each path
 3) replace the reference of all directly defined subpath
@@ -35,7 +50,12 @@ Method:
 4.3) extract the reverse subpath
 4.4) replace all references of the reverse subpath
 
+T2D2
+remove the parameters array in the CmdList object and replace it by properties with more explicit semantic
 but for 4.2, I need to have a completely defined path: how to deal with path where a path is defined but is followed by a reference to a reverse subpath???
+
+questions:
+Q1: what appends if a content try to define several chunks with the same id
 
 pour limiter la difficulté
 je pose que les subpath sont tous traités en relatif
@@ -73,6 +93,12 @@ si un path définit un subpath
     function existy(x) {
         return (x !== null) && (x !== undefined);
     }
+    /* T2D2
+    for expandReversedChunks and expandChunks
+    verify if the done expansion, only on the data string, is enough or
+    if I need to expand the associated cmdList
+    the later is perhaps useful to update the known absolute point and be able to solve some references
+    */
     // expands all the chunks found in the data, (taking care to changes in the indexes of chunks using that path!)
     function expandChunks(path, data) {
         var newpathdata,
@@ -512,7 +538,8 @@ si un path définit un subpath
             }
             return null;
         };
-        this.reverse = function(){
+        this.reverse = function(){  // works only with relative commands, except the M
+          // T2D2 process all the possible commands 
           var revCmdList = new superpath.CmdList,
               i,
               cmd,
@@ -578,6 +605,7 @@ si un path définit un subpath
             this.cmd.push(cmd);
         }
         this.toString = function () {
+          // T2D2 process all the possible commands 
             var i = 0,
                 ipar,
                 str = "";
@@ -917,7 +945,7 @@ si un path définit un subpath
                 idsubpath = pp.getSubpathRefId();
                 descriptionsubpath = pp.getSubpathDesc();
                 cmd.parameters.push(idsubpath);
-                cmd.parameters.push(descriptionsubpath);
+                cmd.parameters.push(descriptionsubpath);  // T2D2 replace it by a list of commands??
                 if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
                     cmd.crtPt = cmdList.cmd[cmdList.cmd.length-1].absEndPt; 
                 }
@@ -949,6 +977,7 @@ si un path définit un subpath
         }
         return cmdList;
     };
+    // T2D2 I need to understand the following lines (copied from other code)
     if (typeof define === "function" && define.amd) {
         define(superpath);
     } else if (typeof module === "object" && module.exports) {
