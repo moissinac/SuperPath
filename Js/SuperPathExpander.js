@@ -292,6 +292,18 @@ si un path définit un subpath
                 break;
             case 'h':
             case 'H':
+                cmd = {};
+                cmd.command = 'h';
+                cmd.crtPt = {};
+                cmd.parameters = [];
+                pt = {};
+                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].parameters[0];
+                cmd.crtPt.y = pt.y = revCmdList.cmd[icmd - 1].crtPt.y;
+                if (crtcmdcode==='H') {
+                    pt.x -= revCmdList.cmd[icmd - 1].crtPt.x; 
+                }
+                cmd.parameters.push(pt.x);
+                revCmdList.cmd.push(cmd);
                 break;
             case 'm': // T2D2 check for relative move
             case 'M':
