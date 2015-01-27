@@ -34,18 +34,15 @@
    id="svg2"
      version="1.1" onload="superpath.expandPaths()">
     <script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js" />
-     <defs>
-        <path id="p2" d="" />
-     </defs>
     <path  d="M425,25L225,25 225,225 425,225(p1|L425,225L425,175Q525,125 425,75L425,25)" style="fill:#0000FF" />
-    <path  d="M425,25#p1|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
+    <path  d="M425,25!p1|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
     <g transform="translate(0 300)">
       <path  d="M425,25L225,25 225,225 425,225(p2|L425,225Q375,200 425,175Q525,125 425,75Q375,50 425,25)" style="fill:#0000FF" />
       <path  d="M425,25!p2|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
     </g>
     <g transform="translate(500 0)">
       <path  d="M425,25L225,25 225,225 425,225#p1|" style="fill:#0000FF" />
-      <path  d="M425,25#p1|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
+      <path  d="M425,25!p1|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
       <path  d="M425,225#p1|"  style="stroke:#FF0000;fill:none;stroke-width:3" />
     </g>
     <g transform="translate(500 300)">
