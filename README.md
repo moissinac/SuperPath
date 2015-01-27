@@ -32,34 +32,12 @@ A typical usage is:
  onload="superpath.expandPaths()"
 ```
 
-Then, the principle is to define chunk of path as path with id in the defs element, then to use it with the command P or R in the data for other path.
+Then, the principle is to define chunk of path as part of a path at associating id to that partt, then to use it with the commands # or ! in the data for other path. the chunk is then defined after translation in a sequence of relatives commands deduced from tha source path.
 
-P#idOfMyChunk insert a copy of the chunk with id idOfMyChunk (a space must follow the id; it's the separator with what follow)
+#idOfMyChunk insert a copy of the chunk with id idOfMyChunk (a | must follow the id; it's the separator with what follows)
 
-R#idOfMyChunk insert a copy of the chunk with id idOfMyChunk but after reversing the commands (from the end to the begining)
+!idOfMyChunk insert a copy of the chunk with id idOfMyChunk but after reversing the commands (from the end to the begining, and processing them to follow the same geometry from the end to the begining)
 
-**piece01withExternalScript.svg**
+See https://github.com/moissinac/SuperPath/wiki/Samples for samples (which are also in the Samples directory of the repositoty)
 
-Sample SVG file with usage of the extension.
-Line
-```
-    <path d="L330,150 280,230 h10 L330,310 280,400" id="p1" />
-```                            
-define a path chunk
-
-Lines
-```
-  <path d="M 90,190 220,90 P#p1 120,375 z"
-       fill="yellow" stroke="blue" stroke-width="5" />
-  <path d="M 500,385 390,460 R#p1 450,50 565,81 z"
-       fill="red" stroke="blue" stroke-width="5" />
-```
-use the chunk as part of the path data (d) definition with reference to the id 
-of the chunk.
-
-**piece01-expanded.svg**
-
-Is the standard SVG file equivalent to the one obtained by execution of the
-SuperPathExpander.js/expandPaths() function in  piece01withExternalScript.svg
-
-See https://github.com/moissinac/SuperPath/wiki/Samples for more samples (which are also in the Samples directory of the repositoty)
+See https://github.com/moissinac/SuperPath/wiki/In-progress-new-implementation-of-SuperPath for the specification and some known issues
