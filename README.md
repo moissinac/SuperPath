@@ -34,10 +34,14 @@ A typical usage is:
 
 Then, the principle is to define chunk of path as part of a path at associating id to that part, then to use it with the commands # or ! in the data for other path. the chunk is then defined after translation in a sequence of relatives commands deduced from tha source path. 
 
-* "#idOfMyChunk"
+```
+#idOfMyChunk
+```
 insert a copy of the chunk with id idOfMyChunk (a | must follow the id; it's the separator with what follows)
 
-* !idOfMyChunk
+```
+!idOfMyChunk
+```
 insert a copy of the chunk with id idOfMyChunk  (a | must follow the id; it's the separator with what follows) but after reversing the commands (from the end to the begining, and processing them to follow the same geometry from the end to the begining)
 
 See https://github.com/moissinac/SuperPath/wiki/Samples for samples (which are also in the Samples directory of the repositoty)
