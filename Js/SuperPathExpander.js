@@ -80,7 +80,7 @@ si un path définit un subpath
             idSep,
             idChunk,
             ref,
-            expanded,
+            expanded = "",
             delta,
             iPath,
             chunk;
@@ -95,14 +95,19 @@ si un path définit un subpath
             if (idSep !== -1) {
                 idChunk = newpathdata.slice(index + 1, idSep);
                 ref = superpath.DIRECTREF + idChunk + superpath.SEPARATOR;
-                expanded = superpath.chunks[idChunk].description + " ";
+                if (existy(superpath.chunks[idChunk])) {
+                    expanded = superpath.chunks[idChunk].data + " ";
+                }
             } else {
                 idChunk = newpathdata.slice(index + 1);
                 ref = superpath.DIRECTREF + idChunk;
-                expanded = superpath.chunks[idChunk].description;
+                if (existy(superpath.chunks[idChunk])) {
+                    expanded = superpath.chunks[idChunk].data;
+                }
             }
             newpathdata = newpathdata.replace(ref, expanded);
-            // search for next chunk refernce in the path
+            // search for next chunk reference in the path
+            expanded = "";
             index = newpathdata.search(superpath.DIRECTREF);
         }
         return newpathdata;
@@ -136,7 +141,7 @@ si un path définit un subpath
             if (existy(superpath.chunks[idChunk].rData)) {
                 rData = superpath.chunks[idChunk].rData;
             } else {
-                rData = superpath.processReversedChunk(superpath.chunks[idChunk]);
+                // rData = superpath.processReversedChunk(superpath.chunks[idChunk]);
             }
             newpathdata = newpathdata.replace(ref, rData);
             delta = rData.length - ref.length;
@@ -250,25 +255,16 @@ si un path définit un subpath
             }
         }
     };
-// T2D2 take chunk.start and chunk.end into account to get just the selected part of the command list
-    superpath.processReversedChunk = function (chunk) {
-        if (!existy(chunk.revCmdList)) {
-            if (!existy(chunk.relCmdList)) {
-                if (!existy(chunk.pathCmdList)) {
-                    var path = chunk.path,
-                        pathdata = path.getAttribute("d");
-                    chunk.pathCmdList = this.svg_parse_path(pathdata);
-                }
-                chunk.relCmdList = this.fullrelativePathCmdList(chunk.pathCmdList);
-            }
-            chunk.revCmdList = this.reversedRelativeCmdList(chunk.relCmdList);
-        }
-        return this.svgSerializeCmdList(chunk.revCmdList);
-    };
 // cmdList is obtained by calling  svg_parse_path on a path data
     superpath.fullrelativePathCmdList = function (cmdList) {
         // transform the path data to use only relative commands
-        var crtPt = {},
+        var revCmdList = new superpath.CmdList,
+            crtPt = {},
+            endpt,
+            ctlpt1,
+            ctlpt2,
+            cmd,
+            crtcmdcode,
             icmd = 0,
             len = cmdList.cmd.length,
             pt;
@@ -277,159 +273,124 @@ si un path définit un subpath
         while (len > icmd) {
             // pour chaque commande passer en relatif et calculer le nouveau point courant
             console.log(cmdList.cmd[icmd].command);
-            switch (cmdList.cmd[icmd].command) {
-            case 'm':
-            case 'M':
-                cmdList.cmd[icmd].crtPt = {};
-                cmdList.cmd[icmd].crtPt.x = cmdList.cmd[icmd].parameters[0].x;
-                cmdList.cmd[icmd].crtPt.y = cmdList.cmd[icmd].parameters[0].y;
+            crtcmdcode = cmdList.cmd[icmd].command; 
+            switch (crtcmdcode) {
+            case 'v':
+            case 'V':
+                cmd = {};
+                cmd.command = 'v';
+                cmd.crtPt = {};
+                cmd.parameters = [];
+                pt = {};
+                cmd.crtPt.x = pt.x = revCmdList.cmd[icmd - 1].crtPt.x;
+                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].parameters[0];
+                if (crtcmdcode==='V') {
+                    pt.y -= revCmdList.cmd[icmd - 1].crtPt.y; 
+                }
+                cmd.parameters.push(pt.y);
+                revCmdList.cmd.push(cmd);
                 break;
-            case 'l':
-                cmdList.cmd[icmd].crtPt = {};
-                cmdList.cmd[icmd].crtPt.x = cmdList.cmd[icmd - 1].crtPt.x - cmdList.cmd[icmd].parameters[0].x;
-                cmdList.cmd[icmd].crtPt.y = cmdList.cmd[icmd - 1].crtPt.y - cmdList.cmd[icmd].parameters[0].y;
+            case 'h':
+            case 'H':
+                break;
+            case 'm': // T2D2 check for relative move
+            case 'M':
+                cmd = {};
+                cmd.crtPt = {};
+                pt = {};
+                cmd.command = 'M';
+                cmd.parameters = [];
+                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].parameters[0].x;
+                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].parameters[0].y;
+                cmd.parameters.push(pt);
+                revCmdList.cmd.push(cmd);
                 break;
             case 'L':
-                cmdList.cmd[icmd].crtPt = {};
-                cmdList.cmd[icmd].command = 'l';
+            case 'l':
+                cmd = {};
+                cmd.command = 'l';
+                cmd.crtPt = {};
+                cmd.parameters = [];
                 pt = {};
-                pt.x = cmdList.cmd[icmd].parameters[0].x;
-                pt.y = cmdList.cmd[icmd].parameters[0].y;
-                cmdList.cmd[icmd].parameters[0].x = pt.x - cmdList.cmd[icmd - 1].crtPt.x;
-                cmdList.cmd[icmd].parameters[0].y = pt.y - cmdList.cmd[icmd - 1].crtPt.y;
-                cmdList.cmd[icmd].crtPt.x = pt.x;
-                cmdList.cmd[icmd].crtPt.y = pt.y;
+                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].parameters[0].x;
+                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].parameters[0].y;
+                if (crtcmdcode==='L') {
+                    pt.x -= revCmdList.cmd[icmd - 1].crtPt.x; 
+                    pt.y -= revCmdList.cmd[icmd - 1].crtPt.y; 
+                }
+                cmd.parameters.push(pt);
+                revCmdList.cmd.push(cmd);
                 break;
             case 'q':
-                cmdList.cmd[icmd].crtPt = {};
-                cmdList.cmd[icmd].crtPt.x = cmdList.cmd[icmd - 1].crtPt.x - cmdList.cmd[icmd].parameters[1].x;
-                cmdList.cmd[icmd].crtPt.y = cmdList.cmd[icmd - 1].crtPt.y - cmdList.cmd[icmd].parameters[1].y;
-                break;
             case 'Q':
-                cmdList.cmd[icmd].crtPt = {};
-                cmdList.cmd[icmd].command = 'q';
-                cmdList.cmd[icmd].crtPt.x = cmdList.cmd[icmd].parameters[2].x;
-                cmdList.cmd[icmd].crtPt.y = cmdList.cmd[icmd].parameters[2].y;
-                cmdList.cmd[icmd].parameters[0].x -= cmdList.cmd[icmd - 1].crtPt.x;
-                cmdList.cmd[icmd].parameters[0].y -= cmdList.cmd[icmd - 1].crtPt.y;
-                cmdList.cmd[icmd].parameters[1].x -= cmdList.cmd[icmd - 1].crtPt.x;
-                cmdList.cmd[icmd].parameters[1].y -= cmdList.cmd[icmd - 1].crtPt.y;
-                cmdList.cmd[icmd].parameters[2].x -= cmdList.cmd[icmd - 1].crtPt.x;
-                cmdList.cmd[icmd].parameters[2].y -= cmdList.cmd[icmd - 1].crtPt.y;
+                cmd = {};
+                cmd.crtPt = {};
+                cmd.parameters = [];
+                endpt = {};
+                ctlpt1 = {};
+                ctlpt2 = {};
+                cmd.command = 'q';
+                ctlpt1.x = cmdList.cmd[icmd].parameters[0].x;
+                ctlpt1.y = cmdList.cmd[icmd].parameters[0].y;
+                cmd.crtPt.x = endpt.x = cmdList.cmd[icmd].parameters[1].x;
+                cmd.crtPt.y = endpt.y = cmdList.cmd[icmd].parameters[1].y;
+                if (crtcmdcode==='Q')
+                {
+                    ctlpt1.x -= revCmdList.cmd[icmd - 1].crtPt.x;
+                    ctlpt1.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                    endpt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
+                    endpt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                }
+                cmd.parameters.push(ctlpt1);
+                cmd.parameters.push(endpt);
+                revCmdList.cmd.push(cmd);
                 break;
             case 'c':
-                cmdList.cmd[icmd].crtPt = {};
-                cmdList.cmd[icmd].crtPt.x = cmdList.cmd[icmd - 1].crtPt.x - cmdList.cmd[icmd].parameters[2].x;
-                cmdList.cmd[icmd].crtPt.y = cmdList.cmd[icmd - 1].crtPt.y - cmdList.cmd[icmd].parameters[2].y;
-                break;
             case 'C':
-                cmdList.cmd[icmd].crtPt = {};
-                cmdList.cmd[icmd].command = 'c';
-                pt = {};
-                pt.x = cmdList.cmd[icmd].parameters[0].x;
-                pt.y = cmdList.cmd[icmd].parameters[0].y;
-                cmdList.cmd[icmd].parameters[0].x = pt.x - cmdList.cmd[icmd - 1].crtPt.x;
-                cmdList.cmd[icmd].parameters[0].y = pt.y - cmdList.cmd[icmd - 1].crtPt.y;
-                pt = {};
-                pt.x = cmdList.cmd[icmd].parameters[1].x;
-                pt.y = cmdList.cmd[icmd].parameters[1].y;
-                cmdList.cmd[icmd].parameters[1].x = pt.x - cmdList.cmd[icmd - 1].crtPt.x;
-                cmdList.cmd[icmd].parameters[1].y = pt.y - cmdList.cmd[icmd - 1].crtPt.y;
-                pt = {};
-                pt.x = cmdList.cmd[icmd].parameters[2].x;
-                pt.y = cmdList.cmd[icmd].parameters[2].y;
-                cmdList.cmd[icmd].parameters[2].x = pt.x - cmdList.cmd[icmd - 1].crtPt.x;
-                cmdList.cmd[icmd].parameters[2].y = pt.y - cmdList.cmd[icmd - 1].crtPt.y;
-                cmdList.cmd[icmd].crtPt.x = pt.x;
-                cmdList.cmd[icmd].crtPt.y = pt.y;
+                cmd = {};
+                cmd.crtPt = {};
+                cmd.parameters = [];
+                endpt = {};
+                ctlpt1 = {};
+                ctlpt2 = {};
+                cmd.command = 'c';
+                ctlpt1.x = cmdList.cmd[icmd].parameters[0].x;
+                ctlpt1.y = cmdList.cmd[icmd].parameters[0].y;
+                ctlpt2.x = cmdList.cmd[icmd].parameters[1].x;
+                ctlpt2.y = cmdList.cmd[icmd].parameters[1].y;
+                cmd.crtPt.x = endpt.x = cmdList.cmd[icmd].parameters[2].x;
+                cmd.crtPt.y = endpt.y = cmdList.cmd[icmd].parameters[2].y;
+                if (crtcmdcode==='C')
+                {
+                    ctlpt1.x -= revCmdList.cmd[icmd - 1].crtPt.x;
+                    ctlpt1.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                    ctlpt2.x -= revCmdList.cmd[icmd - 1].crtPt.x;
+                    ctlpt2.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                    endpt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
+                    endpt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                }
+                cmd.parameters.push(ctlpt1);
+                cmd.parameters.push(ctlpt2);
+                cmd.parameters.push(endpt);
+                revCmdList.cmd.push(cmd);
+                break;
+            case '(': 
+                cmd = {};
+                cmd.command = '(';
+                cmd.parameters = [];
+                cmd.parameters.push(cmdList.cmd[icmd].parameters[0]);
+                cmd.parameters.push(cmdList.cmd[icmd].parameters[1]);
+                revCmdList.cmd.push(cmd);
                 break;
             case 'z': //
+                cmd = {};
+                cmd.command = 'z';
+                revCmdList.cmd.push(cmd);
                 break;
             }
             icmd += 1;
         }
-        return cmdList;
-    };
-    superpath.svgSerializeCmdList = function (cmdList) {
-        var data = "",
-            pt;
-        cmdList.cmd.forEach(function (cmd) {
-            data += cmd.command;
-            switch (cmd.command) {
-            case 'l':
-            case 'L':
-                pt = cmd.parameters[0];
-                data += pt.x + "," + pt.y;
-                break;
-            case 'm':
-            case 'M':
-                pt = cmd.parameters[0];
-                data += pt.x + "," + pt.y;
-                break;
-            case 'q':
-                break;
-            case 'Q':
-                break;
-            case 'c':
-                break;
-            case 'C':
-                break;
-            case 'z': //
-                break;
-            }
-        });
-        return data;
-    };
-    superpath.reversedRelativeCmdList = function (cmdList) {
-        var newCmdList = new superpath.CmdList,
-            len = cmdList.cmd.length,
-            icmd = len - 1,
-            closedPath = (cmdList.cmd[icmd].command === 'z' ? true : false),
-            cmd = {};
-        // reverse the complete relative path
-        if (closedPath) {
-            cmd.command = 'M';
-            cmd.parameters = [];
-            cmd.parameters[0] = {
-            };
-            cmd.parameters[0].x = cmdList.cmd[icmd - 1].crtPt.x;
-            cmd.parameters[0].y = cmdList.cmd[icmd - 1].crtPt.y;
-            newCmdList.push(cmd);
-            icmd -= 1;
-        }
-        // if closed, let the first M command as is; else ???
-        while (icmd > 0) {
-            switch (cmdList.cmd[icmd].command) {
-            case 'l':
-                cmd = {};
-                cmd.command = 'l';
-                cmd.parameters = cmdList.cmd[icmd].parameters;
-                cmd.parameters[0].x *= -1;
-                cmd.parameters[0].y *= -1;
-                newCmdList.push(cmd);
-                break;
-            case 'q':
-                break;
-            case 'c':
-                break;
-            case 'z': // go from the starting point of the original path to the end
-                break;
-            }
-            icmd -= 1;
-        }
-        if (closedPath) {
-            cmd = {
-            };
-            cmd.command = 'z';
-            newCmdList.push(cmd);
-        }
-        return newCmdList;
-    };
-    superpath.reversePathData2 = function (data) {
-        var cmdList = this.svg_parse_path(data);
-        cmdList = this.fullrelativePathCmdList(cmdList);
-        cmdList = this.reversedRelativeCmdList(cmdList);
-        return this.svgSerializeCmdList(cmdList);
+        return revCmdList;
     };
     superpath.reversePathData = function (data) {
         // T2D2 reverse the piece (chunk) data as a part of a complete path, then extract the chunk
@@ -543,7 +504,8 @@ si un path définit un subpath
           var revCmdList = new superpath.CmdList,
               i,
               cmd,
-              pt;
+              pt,
+              target;
           for (i=this.cmd.length - 1; i >= 0; i -= 1) {
               cmd = {};
               cmd.command = this.cmd[i].command;
@@ -555,6 +517,10 @@ si un path définit un subpath
                   pt.y = -1 * this.cmd[i].parameters[0].y;
                   cmd.parameters.push(pt);
                   break; 
+              case 'h' :
+              case 'v' :
+                  cmd.parameters.push(-1 * this.cmd[i].parameters[0]);
+                  break; 
               case 'l' :
                   pt = {};
                   pt.x = -1 * this.cmd[i].parameters[0].x; // T2D2 différencier suivant la commande 
@@ -562,27 +528,33 @@ si un path définit un subpath
                   cmd.parameters.push(pt);
                   break; 
               case 'c' :
+                  target = {};
+                  target.x = this.cmd[i].parameters[2].x; 
+                  target.y = this.cmd[i].parameters[2].y; 
                   pt = {};
-                  pt.x = -1 * this.cmd[i].parameters[0].x; 
-                  pt.y = -1 * this.cmd[i].parameters[0].y;
+                  pt.x = this.cmd[i].parameters[1].x - target.x; 
+                  pt.y = this.cmd[i].parameters[1].y - target.y;
                   cmd.parameters.push(pt);
                   pt = {};
-                  pt.x = -1 * this.cmd[i].parameters[1].x; 
-                  pt.y = -1 * this.cmd[i].parameters[1].y;
+                  pt.x = this.cmd[i].parameters[0].x - target.x; 
+                  pt.y = this.cmd[i].parameters[0].y - target.y;
                   cmd.parameters.push(pt);
                   pt = {};
-                  pt.x = -1 * this.cmd[i].parameters[2].x; 
-                  pt.y = -1 * this.cmd[i].parameters[2].y;
+                  pt.x = -1 * target.x; 
+                  pt.y = -1 * target.y;
                   cmd.parameters.push(pt);
                   break; 
               case 'q' :
+                  target = {};
+                  target.x = this.cmd[i].parameters[1].x; 
+                  target.y = this.cmd[i].parameters[1].y; 
                   pt = {};
-                  pt.x = -1 * this.cmd[i].parameters[0].x; 
-                  pt.y = -1 * this.cmd[i].parameters[0].y;
+                  pt.x = this.cmd[i].parameters[0].x - target.x; 
+                  pt.y = this.cmd[i].parameters[0].y - target.y;
                   cmd.parameters.push(pt);
                   pt = {};
-                  pt.x = -1 * this.cmd[i].parameters[1].x; 
-                  pt.y = -1 * this.cmd[i].parameters[1].y;
+                  pt.x = -1 * target.x; 
+                  pt.y = -1 * target.y;
                   cmd.parameters.push(pt);
                   break; 
               }
@@ -600,13 +572,20 @@ si un path définit un subpath
             while (this.cmd.length>i) {
                 str += this.cmd[i].command;
                 if (existy(this.cmd[i].parameters)) {
-                  if (this.cmd[i].command === "(")
-                  {
+                  switch (this.cmd[i].command) {
+                  case "(":
                       str += this.cmd[i].parameters[0] + "|" + this.cmd[i].parameters[1] +")";
-                  } else {
-                    for (ipar=0; this.cmd[i].parameters.length>ipar; ipar += 1) {
+                      break;
+                  case "h":
+                  case "v":
+                  case "H":
+                  case "V":
+                      str += this.cmd[i].parameters[0];
+                      break;
+                  default:
+                      for (ipar=0; this.cmd[i].parameters.length>ipar; ipar += 1) {
                         str+= (ipar>0?" ":"") + this.cmd[i].parameters[ipar].x + "," + this.cmd[i].parameters[ipar].y;
-                    }
+                      }
                   }
                 }
                 i += 1;
@@ -697,7 +676,7 @@ si un path définit un subpath
                 this.i += 1;
                 return this.tokens[this.i];
             };
-            this.getId = function () {
+            this.getSubpathRefId = function () {
                 var id = this.getToken();
                 return id.slice(0,id.indexOf("|"));
             };
@@ -923,7 +902,7 @@ si un path définit un subpath
                 cmd = {};
                 cmd.command = pp.command;
                 cmd.parameters = [];
-                idsubpath = pp.getId();
+                idsubpath = pp.getSubpathRefId();
                 descriptionsubpath = pp.getSubpathDesc();
                 cmd.parameters.push(idsubpath);
                 cmd.parameters.push(descriptionsubpath);
@@ -932,14 +911,11 @@ si un path définit un subpath
                 }
                 cmdList.push(cmd);
                 break;
+            case '!':
             case '#':
                 cmd = {};
                 cmd.command = pp.command;
-                cmdList.push(cmd);
-                break;
-            case '!':
-                cmd = {};
-                cmd.command = pp.command;
+                cmd.ref = pp.getSubpathRefId()
                 cmdList.push(cmd);
                 break;
             case 'T':
