@@ -24,36 +24,12 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
 Hypothesis:
-after a ref, there is always an explicit command
-a chunk definition can't contain a chunk definition or reference
-
-Algo (to do):
-1) build a table D of path with (
-2) build a table R of path with #
-3) build a table I of path with !
-4) while something has changed, do the following steps
-a) for each path in the table D, process the path to get the usable version of each chunk if posssible (see below) and replace the command definition by the usable chunk
-b) for each path in the table R, expand the referenced chunks if the definition is usable and then remove the path from R table (if no other ref remains)
-c) for each path in the table I, expand the referenced chunks if the definition is usable and then remove the path from R table (if no other ref remains)
-if we come out the while and some path remains in the tables D, R or I, the content is problematic
-
-to get the usable version of each chunk:
-if all the commands of the chunk are relative, I have quite nothing to do (perhaps just preprocess the reverse chunk)
-start from the ( and go backward until finding either a command with an absolute end point (absEndPt) or an absolute command (which gives us the corresponding absEndPt)
-if I encounter a ), I can't transform the current chunk until that previous reference will be solved
-if I find an absEndPt, I can propagate the absolute knowledge until the begining of the current chunk and solve it
+- after a ref, there is always an explicit command
+- a chunk definition can't contain a chunk definition or reference
+- all chunk definition are transated to relative commands
  
-previous proposal was
-1) build a dictionnary of subpath definition
-2) build a list of used subpath in each path
-3) replace the reference of all directly defined subpath
-4) for each reversely used subpath,
-4.1) build the relative path geometrically identical of the path where the subpath is defined
-4.2) build the reverse of the relative path
-4.3) extract the reverse subpath
-4.4) replace all references of the reverse subpath
-but for 4.2, I need to have a completely defined path: how to deal with path where a path is defined but is followed by a reference to a reverse subpath???
-
+possible optimization:
+when a chunk definition contains only relative commands, we can skip code used to search a previous reference point
 
 questions:
 Q1: what appends if a content try to define several chunks with the same id
@@ -70,21 +46,12 @@ possible useful parser: see http://pastie.org/1036541
 je vais mettre les définitions de chunk dans les path qui les définissent
 je vais construire une table associative de chunks qui associe un nom de chunk à un path qui le définit
 
-je peux construire une liste de path qui définissent des subpath
-je peux construire une liste de subpath qui sont exploitables (possèdent une description par une liste de commandes relatives)
-je peux construire une liste de path qui référencent des path dans la direction d'origine
-je peux construire une liste de path qui référencent des path dans la direction invsersée
-
-algo?
-si un path définit un subpath
-       résoudre les définitions du path qui précédent la définition du subpath (est-ce nécessaire? pour transformer en relatif des commandes absolues, j'ai besoin de savoir d'où je pars)
-       en fait je dois remonter en arrière jusqu'à la première commande absolue rencontrée
- */
+*/
 (function () {
     "use strict";
     var superpath = {
         version: "0.1.0",
-        SEPARATOR: "|",
+        SEPARATOR: "|", // with the current parser, can be all chars but other commands and space
         OPENCHUNK: "(",
         ENDCHUNK: ")",
         DIRECTREF: "#",
@@ -220,7 +187,7 @@ si un path définit un subpath
         cmdIndex = 0;
         do {
             cmd = cmdList.cmd[cmdIndex];
-            if (cmd.command === "(") {
+            if (cmd.command === superpath.OPENCHUNK) {
                 chunkName = cmd.chunkName;
                 chunk = superpath.chunks[chunkName] = {};
                 // T2D2 here it's possible that cmd.crtPt isn't defined; must add processing of that case
@@ -230,7 +197,7 @@ si un path définit un subpath
                 chunk.data = strDescription(chunk.description);
                 chunk.rData = strDescription(chunk.reversedDescription);
                 // T2D2 process the replacement of the ( command
-                path.newpathdata = newpathdata.replace(newpathdata.slice(newpathdata.indexOf("("), newpathdata.indexOf(")")+1), chunk.data);
+                path.newpathdata = newpathdata.replace(newpathdata.slice(newpathdata.indexOf(superpath.OPENCHUNK), newpathdata.indexOf(superpath.ENDCHUNK)+1), chunk.data);
                 someChange = true;
             }
             cmdIndex += 1;
@@ -362,9 +329,9 @@ si un path définit un subpath
                 cmd.target = endpt;
                 revCmdList.cmd.push(cmd);
                 break;
-            case '(': 
+            case superpath.OPENCHUNK: 
                 cmd = {};
-                cmd.command = '(';
+                cmd.command = superpath.OPENCHUNK;
                 cmd.chunkName = cmdList.cmd[icmd].chunkName;
                 cmd.strDescription = cmdList.cmd[icmd].strDescription;
                 revCmdList.cmd.push(cmd);
@@ -475,7 +442,7 @@ si un path définit un subpath
                 cmd;
             for (icmd=0; this.cmd.length>icmd+1; icmd += 1) {
                 cmd = this.cmd[icmd];
-                if ((cmd.command==="(")&&(cmd.chunkName===id)) {
+                if ((cmd.command===superpath.OPENCHUNK)&&(cmd.chunkName===id)) {
                     if (existy(cmd.crtPt)) {
                         return cmd.crtPt;
                     } else {
@@ -562,8 +529,8 @@ si un path définit un subpath
               cmd = this.cmd[i];
               str += cmd.command;
                 switch (cmd.command) {
-                case "(":
-                    str += cmd.chunkName + "|" + cmd.strDescription +")";
+                case superpath.OPENCHUNK:
+                    str += cmd.chunkName + "|" + cmd.strDescription +superpath.ENDCHUNK;
                     break;
                 case "h":
                 case "v":
@@ -603,7 +570,9 @@ si un path définit un subpath
             cp,
             t,
             idsubpath,
-            descriptionsubpath;
+            descriptionsubpath,
+            commands,
+            regex;
         this.compressSpaces = function (s) {
             return s.replace(/[\s\r\t\n]+/gm, ' ');
         };
@@ -613,10 +582,14 @@ si un path définit un subpath
         // T2D2: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
         d = d.replace(/,/gm, ' '); // get rid of all commas
         // T2D2 undestand why the following line is repeted two times
-        d = d.replace(/([MmZzLlHhVvCcSsQqTtAa(#!)])([MmZzLlHhVvCcSsQqTtAa(#!)])/gm, '$1 $2'); // separate commands from commands
-        d = d.replace(/([MmZzLlHhVvCcSsQqTtAa(#!)])([MmZzLlHhVvCcSsQqTtAa(#!)])/gm, '$1 $2'); // separate commands from commands
-        d = d.replace(/([MmZzLlHhVvCcSsQqTtAa(#!)])([^\s])/gm, '$1 $2'); // separate commands from points
-        d = d.replace(/([^\s])([MmZzLlHhVvCcSsQqTtAa(#!)])/gm, '$1 $2'); // separate commands from points
+        commands = "MmZzLlHhVvCcSsQqTtAa"+superpath.OPENCHUNK+superpath.DIRECTREF+superpath.REVERSEDREF+superpath.ENDCHUNK;
+        regex = new RegExp("([" + commands + "])([" + commands + "])", "gm");
+        d = d.replace(regex, '$1 $2'); // separate commands from commands
+        d = d.replace(regex, '$1 $2'); // separate commands from commands
+        regex = new RegExp("([" + commands + "])([^\s])", "gm");
+        d = d.replace(regex, '$1 $2'); // separate commands from points
+        regex = new RegExp("([^\s])([" + commands + "])", "gm");
+        d = d.replace(regex, '$1 $2'); // separate commands from points
         d = d.replace(/([0-9])([+\-])/gm, '$1 $2'); // separate digits when no comma
         d = d.replace(/(\.[0-9]*)(\.)/gm, '$1 $2'); // separate digits when no comma
         d = d.replace(/([Aa](\s+[0-9]+){3})\s+ ([01])\s*([01])/gm, '$1 $3 $4 '); // shorthand elliptical arc path syntax
@@ -658,7 +631,7 @@ si un path définit un subpath
                 // folowing lines are for superpath extension
                 case '#':
                 case '!':
-                case '(':
+                case superpath.OPENCHUNK:
                     return true;
                 }
                 return false;
@@ -679,7 +652,7 @@ si un path définit un subpath
             this.getSubpathDesc = function () {
                 var str = this.getToken();
                 var toc = this.getToken();
-                while (toc !== ")") { str +=  toc+" "; toc = this.getToken(); };
+                while (toc !== superpath.ENDCHUNK) { str +=  toc+" "; toc = this.getToken(); };
                 return str;
             };
             this.getScalar = function () {
@@ -887,7 +860,7 @@ si un path définit un subpath
                     cmdList.push(cmd);
                 } while (!pp.isCommandOrEnd());
                 break;
-            case '(':
+            case superpath.OPENCHUNK:
                 cmd = {};
                 cmd.command = pp.command;
                 idsubpath = pp.getSubpathRefId();
@@ -925,6 +898,23 @@ si un path définit un subpath
         }
         return cmdList;
     };
+    /*
+    Algo:
+    1) build a table D of path with (
+    2) build a table R of path with #
+    3) build a table I of path with !
+    4) while something has changed, do the following steps
+    a) for each path in the table D, process the path to get the usable version of each chunk if posssible (see below) and replace the command definition by the usable chunk
+    b) for each path in the table R, expand the referenced chunks if the definition is usable and then remove the path from R table (if no other ref remains)
+    c) for each path in the table I, expand the referenced chunks if the definition is usable and then remove the path from R table (if no other ref remains)
+    if we come out the while and some path remains in the tables D, R or I, the content is problematic
+    
+    to get the usable version of each chunk:
+    if all the commands of the chunk are relative, I have quite nothing to do (perhaps just preprocess the reverse chunk)
+    start from the ( and go backward until finding either a command with an absolute end point (absEndPt) or an absolute command (which gives us the corresponding absEndPt)
+    if I encounter a ), I can't transform the current chunk until that previous reference will be solved
+    if I find an absEndPt, I can propagate the absolute knowledge until the begining of the current chunk and solve it
+    */
     superpath.expandPaths = function () {
         var pathlist = document.getElementsByTagName("path"),
             len,
