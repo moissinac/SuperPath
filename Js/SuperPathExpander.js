@@ -101,7 +101,7 @@ si un path définit un subpath
     the later is perhaps useful to update the known absolute point and be able to solve some references
     */
     // expands all the chunks found in the data, (taking care to changes in the indexes of chunks using that path!)
-    function expandChunks(path, data) {
+    function expandChunks(path) {
         var newpathdata,
             index,
             idSep,
@@ -110,11 +110,9 @@ si un path définit un subpath
             expanded = "",
             delta,
             iPath,
-            chunk;
-        if (!existy(data)) {
-            data = path.getAttribute("d");
-        }
-        newpathdata = data;
+            chunk, 
+            someChange = false;
+        newpathdata = path.getAttribute("d");
         index = newpathdata.search(superpath.DIRECTREF);
         while (index > 0) {
             // index is the begining of the id (after superpath.DIRECTREF), superpath.SEPARATOR is the separator with the following
@@ -132,14 +130,15 @@ si un path définit un subpath
                     expanded = superpath.chunks[idChunk].data;
                 }
             }
-            newpathdata = newpathdata.replace(ref, expanded);
+            path.newpathdata = newpathdata = newpathdata.replace(ref, expanded);
+            someChange = true;
             // search for next chunk reference in the path
             expanded = "";
             index = newpathdata.search(superpath.DIRECTREF);
         }
-        return newpathdata;
+        return someChange;
     }
-    function expandReversedChunks(path, data) {
+    function expandReversedChunks(path) {
         var newpathdata,
             index,
             idSep,
@@ -148,11 +147,9 @@ si un path définit un subpath
             delta,
             rData,
             iPath,
-            chunk;
-        if (!existy(data)) {
-            data = path.getAttribute("d");
-        }
-        newpathdata = data;
+            chunk, 
+            someChange = false;
+        newpathdata = path.getAttribute("d");
         index = newpathdata.search(superpath.REVERSEDREF);
         while (index > 0) {
             // index is the begining of the id (after superpath.REVERSEDREF), superpath.SEPARATOR is the separator with the following
@@ -168,24 +165,13 @@ si un path définit un subpath
             if (existy(superpath.chunks[idChunk].rData)) {
                 rData = superpath.chunks[idChunk].rData;
             } else {
-                // rData = superpath.processReversedChunk(superpath.chunks[idChunk]);
             }
-            newpathdata = newpathdata.replace(ref, rData);
-            delta = rData.length - ref.length;
-            // adjust chunks start and end indexes for chunks defined by that path (only if there are after the replace!)
-            if (existy(path.chunks)) {
-                for (iPath = 0; path.chunks.length > iPath; iPath += 1) {
-                    chunk = path.chunks[iPath];
-                    if (chunk.start > index) {
-                        chunk.start += delta;
-                        chunk.end += delta;
-                    }
-                }
-            }
+            path.newpathdata = newpathdata = newpathdata.replace(ref, rData);
+            someChange = true;
             // search for next reversed ref
             index = newpathdata.search(superpath.REVERSEDREF);
         }
-        return newpathdata;
+        return someChange;
     }
     function buildCmdList(desc, startingPt) {
         // add a fake M command to resolve the absolute commands againt a reference point
@@ -222,13 +208,13 @@ si un path définit un subpath
     // take a data path, complete the chunk dictionnary with found chunks, and remove the chunk definition
     function findChunks(path) {
         var newpathdata = path.getAttribute("d"),
-            iStart = 0,
             chunkSeparation,
             chunkName,
             chunk,
             cmdList,
             cmdIndex,
-            cmd;
+            cmd, 
+            someChange = false;
         path.chunks = []; // to know chunks defined in a path
         cmdList = path.cmdList = superpath.svg_parse_path(newpathdata);
         cmdIndex = 0;
@@ -237,51 +223,20 @@ si un path définit un subpath
             if (cmd.command === "(") {
                 chunkName = cmd.chunkName;
                 chunk = superpath.chunks[chunkName] = {};
+                // T2D2 here it's possible that cmd.crtPt isn't defined; must add processing of that case
                 chunk.description = buildCmdList(cmd.strDescription, cmd.crtPt); // list of commands
                 chunk.reversedDescription = buildReversedCmdList(chunk.description);
                 chunk.path = path; // to know the path from which comes the chunk
                 chunk.data = strDescription(chunk.description);
                 chunk.rData = strDescription(chunk.reversedDescription);
                 // T2D2 process the replacement of the ( command
-                newpathdata = newpathdata.replace(newpathdata.slice(newpathdata.indexOf("("), newpathdata.indexOf(")")+1), chunk.data);
+                path.newpathdata = newpathdata.replace(newpathdata.slice(newpathdata.indexOf("("), newpathdata.indexOf(")")+1), chunk.data);
+                someChange = true;
             }
             cmdIndex += 1;
         } while (cmdList.cmd.length>cmdIndex);
-        return newpathdata;
+        return someChange;
     }
-
-    superpath.expandPaths = function () {
-        var pathlist = document.getElementsByTagName("path"),
-            len = pathlist.length,
-            iPath = 0,
-            path,
-            pathdata;
-        // build chunk dictionnary
-        for (iPath = 0; len > iPath; iPath += 1) {
-            path = pathlist[iPath];
-            pathdata = path.getAttribute("d");
-            if (pathdata.indexOf(superpath.OPENCHUNK) !== -1) {
-                path.setAttribute("d", findChunks(path));
-                // trouve les morceaux et remplace les définitions par leur valeur
-            }
-        }
-        // expand direct chunks references
-        for (iPath = 0; len > iPath; iPath += 1) {
-            path = pathlist[iPath];
-            pathdata = path.getAttribute("d");
-            if (pathdata.search(superpath.DIRECTREF) !== -1) {
-                path.setAttribute("d", expandChunks(path, pathdata));
-            }
-        }
-        // expand reversed chunks
-        for (iPath = 0; len > iPath; iPath += 1) {
-            path = pathlist[iPath];
-            pathdata = path.getAttribute("d");
-            if (pathdata.search(superpath.REVERSEDREF) !== -1) {
-                path.setAttribute("d", expandReversedChunks(path, pathdata));
-            }
-        }
-    };
 // cmdList is obtained by calling  svg_parse_path on a path data
     superpath.fullrelativePathCmdList = function (cmdList) {
         // transform the path data to use only relative commands
@@ -969,6 +924,84 @@ si un path définit un subpath
             }
         }
         return cmdList;
+    };
+    superpath.expandPaths = function () {
+        var pathlist = document.getElementsByTagName("path"),
+            len,
+            iPath = 0,
+            path,
+            pathdata,
+            pathDefinerList = [],
+            pathDRefList = [],
+            pathIRefList = [], 
+            someChange = false,
+            pathChange = false;
+        len = pathlist.length;
+        for (iPath = 0; len > iPath; iPath += 1) {
+            path = pathlist[iPath];
+            pathdata = path.getAttribute("d");
+            // build list of path containing a chunk definition
+            if (pathdata.indexOf(superpath.OPENCHUNK) !== -1) {
+                pathDefinerList.push(path);
+            }
+            // build list of path containing a chunk direct reference
+            if (pathdata.indexOf(superpath.DIRECTREF) !== -1) {
+                pathDRefList.push(path);
+            }
+            // build list of path containing a chunk inverse reference
+            if (pathdata.indexOf(superpath.REVERSEDREF) !== -1) {
+                pathIRefList.push(path);
+            }
+        }
+        do {
+            // try to process the chunk definitions and resolve the references until nothing appends
+            someChange = false;
+            // build chunk dictionnary
+            iPath = 0;
+            while (pathDefinerList.length > iPath) {
+                path = pathDefinerList[iPath];
+                pathChange = findChunks(path); // find and define chunks
+                if (pathChange) {
+                    path.setAttribute("d", path.newpathdata);
+                    someChange = true;
+                    iPath += 1;
+                } else {
+                    // remove the path from the list of definers
+                    pathDefinerList.splice(iPath, 1);
+                } 
+            }
+            // expand direct chunks references
+            iPath = 0;
+            while (pathDRefList.length > iPath) {
+                path = pathDRefList[iPath];
+                pathChange = expandChunks(path);
+                if (pathChange) {
+                    path.setAttribute("d", path.newpathdata);
+                    someChange = true;
+                    iPath += 1;
+                } else {
+                    // remove the path from the list of definers
+                    pathDRefList.splice(iPath, 1);
+                } 
+            };
+            // expand reversed chunks
+            iPath = 0;
+            while (pathIRefList.length > iPath) {
+                path = pathIRefList[iPath];
+                pathChange = expandReversedChunks(path);
+                if (pathChange) {
+                    path.setAttribute("d", path.newpathdata);
+                    someChange = true;
+                    iPath += 1;
+                } else {
+                    // remove the path from the list of definers
+                    pathIRefList.splice(iPath, 1);
+                } 
+            }
+        } while (someChange);
+        if ((pathDefinerList.length!==0)||(pathDRefList.length!==0)||(pathIRefList.length!==0)) {
+            alert("Problem: some chunk reference seems impossible to solve!");
+        }
     };
     // T2D2 I need to understand the following lines (inspired from code of other modules)
     if (typeof define === "function" && define.amd) {
