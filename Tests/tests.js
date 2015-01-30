@@ -1,3 +1,18 @@
+QUnit.test( "Test parsing path data with three successive subpath definition", function( assert ) {
+    var data = "M8,6#p2|#p3|(p5|L6,8)z";
+    var cmdList = superpath.svg_parse_path(data);
+    assert.equal( cmdList.toString(), "M8,6#p2|#p3|(p5|L6 8 )z", "Passed!");
+});
+QUnit.test( "Test parsing path data with three successive subpath definition", function( assert ) {
+    var data = "M2,0 4,0 6,2(p1|L6,4)(p3|L4,6)(p4|L2,6)L0,4 0,2z";
+    var cmdList = superpath.svg_parse_path(data);
+    assert.equal( cmdList.toString(), "M2,0L4,0L6,2(p1|L6 4 )(p3|L4 6 )(p4|L2 6 )L0,4L0,2z", "Passed!");
+});
+QUnit.test( "Test parsing path data with two successive subpath definition", function( assert ) {
+    var data = "M2,0 4,0 6,2(p1|L6,4)(p3|L4,6)L2,6 0,4 0,2z";
+    var cmdList = superpath.svg_parse_path(data);
+    assert.equal( cmdList.toString(), "M2,0L4,0L6,2(p1|L6 4 )(p3|L4 6 )L2,6L0,4L0,2z", "Passed!");
+});
 QUnit.test( "Test parsing path data with superpath definition extension with C (minimal data set)", function( assert ) {
     var data = "M 425,25 C 205,25 25,205 25,425";
     var cmdList = superpath.svg_parse_path(data);
