@@ -89,19 +89,22 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 ref = superpath.DIRECTREF + idChunk + superpath.SEPARATOR;
                 if (existy(superpath.chunks[idChunk])) {
                     expanded = superpath.chunks[idChunk].data + " ";
-                }
+                    path.newpathdata = newpathdata = newpathdata.replace(ref, expanded);
+                    someChange = true;
+                } 
             } else {
                 idChunk = newpathdata.slice(index + 1);
                 ref = superpath.DIRECTREF + idChunk;
                 if (existy(superpath.chunks[idChunk])) {
                     expanded = superpath.chunks[idChunk].data;
+                    path.newpathdata = newpathdata = newpathdata.replace(ref, expanded);
+                    someChange = true;
                 }
             }
-            path.newpathdata = newpathdata = newpathdata.replace(ref, expanded);
-            someChange = true;
             // search for next chunk reference in the path
             expanded = "";
-            index = newpathdata.search(superpath.DIRECTREF);
+            delta =  newpathdata.slice(index+1).search(superpath.DIRECTREF);
+            index = (delta!==-1?index+1+delta:-1);
         }
         return someChange;
     }
@@ -129,14 +132,18 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 idChunk = newpathdata.slice(index + 1);
                 ref = superpath.REVERSEDREF + idChunk;
             }
-            if (existy(superpath.chunks[idChunk].rData)) {
-                rData = superpath.chunks[idChunk].rData;
-            } else {
+            if (existy(superpath.chunks[idChunk])) {
+                if (existy(superpath.chunks[idChunk].rData)) {
+                    rData = superpath.chunks[idChunk].rData;
+                } else {
+                }
+                path.newpathdata = newpathdata = newpathdata.replace(ref, rData);
+                someChange = true;
             }
-            path.newpathdata = newpathdata = newpathdata.replace(ref, rData);
-            someChange = true;
             // search for next reversed ref
-            index = newpathdata.search(superpath.REVERSEDREF);
+            // index = newpathdata.search(superpath.REVERSEDREF);
+            delta =  newpathdata.slice(index+1).search(superpath.REVERSEDREF);
+            index = (delta!==-1?index+1+delta:-1);
         }
         return someChange;
     }
@@ -187,7 +194,7 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
         cmdIndex = 0;
         do {
             cmd = cmdList.cmd[cmdIndex];
-            if (cmd.command === superpath.OPENCHUNK) {
+            if ((cmd.command === superpath.OPENCHUNK)&&(existy(cmd.crtPt))) {
                 chunkName = cmd.chunkName;
                 chunk = superpath.chunks[chunkName] = {};
                 // T2D2 here it's possible that cmd.crtPt isn't defined; must add processing of that case
@@ -530,7 +537,11 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
               str += cmd.command;
                 switch (cmd.command) {
                 case superpath.OPENCHUNK:
-                    str += cmd.chunkName + "|" + cmd.strDescription +superpath.ENDCHUNK;
+                    str += cmd.chunkName + superpath.SEPARATOR + cmd.strDescription +superpath.ENDCHUNK;
+                    break;
+                case superpath.DIRECTREF:
+                case superpath.REVERSEDREF:
+                    str += cmd.ref + superpath.SEPARATOR;
                     break;
                 case "h":
                 case "v":
@@ -953,12 +964,13 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 pathChange = findChunks(path); // find and define chunks
                 if (pathChange) {
                     path.setAttribute("d", path.newpathdata);
+                    if (path.newpathdata.indexOf(superpath.OPENCHUNK) === -1) { 
+                      // remove the path from the list of definers if completely solved
+                        pathDefinerList.splice(iPath, 1); 
+                    }
                     someChange = true;
-                    iPath += 1;
-                } else {
-                    // remove the path from the list of definers
-                    pathDefinerList.splice(iPath, 1);
                 } 
+                iPath += 1;
             }
             // expand direct chunks references
             iPath = 0;
@@ -967,12 +979,13 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 pathChange = expandChunks(path);
                 if (pathChange) {
                     path.setAttribute("d", path.newpathdata);
+                    // remove the path from the list of direct reference if completely solved
+                    if (path.newpathdata.indexOf(superpath.DIRECTREF) === -1) { 
+                        pathDRefList.splice(iPath, 1); 
+                    }
                     someChange = true;
-                    iPath += 1;
-                } else {
-                    // remove the path from the list of definers
-                    pathDRefList.splice(iPath, 1);
                 } 
+                iPath += 1;
             };
             // expand reversed chunks
             iPath = 0;
@@ -981,16 +994,18 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 pathChange = expandReversedChunks(path);
                 if (pathChange) {
                     path.setAttribute("d", path.newpathdata);
+                    // remove the path from the list of reversed reference if completely solved
+                    if (path.newpathdata.indexOf(superpath.REVERSEDREF) === -1) { 
+                        pathIRefList.splice(iPath, 1); 
+                    }
                     someChange = true;
-                    iPath += 1;
                 } else {
-                    // remove the path from the list of definers
-                    pathIRefList.splice(iPath, 1);
                 } 
+                iPath += 1;
             }
         } while (someChange);
         if ((pathDefinerList.length!==0)||(pathDRefList.length!==0)||(pathIRefList.length!==0)) {
-            alert("Problem: some chunk reference seems impossible to solve!");
+            console.log("Problem: some chunk reference seems impossible to solve!");
         }
     };
     // T2D2 I need to understand the following lines (inspired from code of other modules)
