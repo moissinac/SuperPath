@@ -27,7 +27,7 @@ Hypothesis:
 - after a ref, there is always an explicit command
 - a chunk definition can't contain a chunk definition or reference
 - all chunk definition are transated to relative commands
- 
+
 possible optimization:
 when a chunk definition contains only relative commands, we can skip code used to search a previous reference point
 
@@ -46,7 +46,7 @@ possible useful parser: see http://pastie.org/1036541
 je vais mettre les dÃ©finitions de chunk dans les path qui les dÃ©finissent
 je vais construire une table associative de chunks qui associe un nom de chunk Ã  un path qui le dÃ©finit
 
-*/
+ */
 (function () {
     "use strict";
     var superpath = {
@@ -57,7 +57,7 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
         DIRECTREF: "#",
         REVERSEDREF: "!"
     };
-    superpath.chunks = []; // dictionnary of subpath
+    superpath.chunks =[]; // dictionnary of subpath
     function existy(x) {
         return (x !== null) && (x !== undefined);
     }
@@ -66,19 +66,19 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
     verify if the done expansion, only on the data string, is enough or
     if I need to expand the associated cmdList
     the later is perhaps useful to update the known absolute point and be able to solve some references
-    */
+     */
     // expands all the chunks found in the data, (taking care to changes in the indexes of chunks using that path!)
     function expandChunks(path) {
         var newpathdata,
-            index,
-            idSep,
-            idChunk,
-            ref,
-            expanded = "",
-            delta,
-            iPath,
-            chunk, 
-            someChange = false;
+        index,
+        idSep,
+        idChunk,
+        ref,
+        expanded = "",
+        delta,
+        iPath,
+        chunk,
+        someChange = false;
         newpathdata = path.getAttribute("d");
         index = newpathdata.search(superpath.DIRECTREF);
         while (index > 0) {
@@ -91,7 +91,7 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                     expanded = superpath.chunks[idChunk].data + " ";
                     path.newpathdata = newpathdata = newpathdata.replace(ref, expanded);
                     someChange = true;
-                } 
+                }
             } else {
                 idChunk = newpathdata.slice(index + 1);
                 ref = superpath.DIRECTREF + idChunk;
@@ -103,22 +103,22 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
             }
             // search for next chunk reference in the path
             expanded = "";
-            delta =  newpathdata.slice(index+1).search(superpath.DIRECTREF);
-            index = (delta!==-1?index+1+delta:-1);
+            delta = newpathdata.slice(index + 1).search(superpath.DIRECTREF);
+            index = (delta !== -1 ? index + 1 + delta: -1);
         }
         return someChange;
     }
     function expandReversedChunks(path) {
         var newpathdata,
-            index,
-            idSep,
-            idChunk,
-            ref,
-            delta,
-            rData,
-            iPath,
-            chunk, 
-            someChange = false;
+        index,
+        idSep,
+        idChunk,
+        ref,
+        delta,
+        rData,
+        iPath,
+        chunk,
+        someChange = false;
         newpathdata = path.getAttribute("d");
         index = newpathdata.search(superpath.REVERSEDREF);
         while (index > 0) {
@@ -142,17 +142,18 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
             }
             // search for next reversed ref
             // index = newpathdata.search(superpath.REVERSEDREF);
-            delta =  newpathdata.slice(index+1).search(superpath.REVERSEDREF);
-            index = (delta!==-1?index+1+delta:-1);
+            delta = newpathdata.slice(index + 1).search(superpath.REVERSEDREF);
+            index = (delta !== -1 ? index + 1 + delta: -1);
         }
         return someChange;
     }
     function buildCmdList(desc, startingPt) {
         // add a fake M command to resolve the absolute commands againt a reference point
-        var data = "M"+startingPt.x+","+startingPt.y+desc,
-            cmdList = superpath.svg_parse_path(data),
-            relCmdList = superpath.fullrelativePathCmdList(cmdList);
-        relCmdList.cmd = relCmdList.cmd.slice(1); // remove the fake starting 'M' command
+        var data = "M" + startingPt.x + "," + startingPt.y + desc,
+        cmdList = superpath.svg_parse_path(data),
+        relCmdList = superpath.fullrelativePathCmdList(cmdList);
+        relCmdList.cmd = relCmdList.cmd.slice(1);
+        // remove the fake starting 'M' command
         return relCmdList;
     }
     function buildReversedCmdList(list) {
@@ -161,144 +162,164 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
     }
     function strDescription(cmdList) {
         var str = "",
-            i,
-            cmd;
-        for (i=0; cmdList.cmd.length>i; i += 1) { 
+        i,
+        cmd;
+        for (i = 0; cmdList.cmd.length > i; i += 1) {
             cmd = cmdList.cmd[i];
-            switch(cmd.command) {
-            case 'l': 
+            switch (cmd.command) {
+                case 'l':
                 str += cmd.command + cmd.target.x + "," + cmd.target.y;
                 break;
-            case 'c': 
-                str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y+" "+cmd.ctlpt2.x + "," + cmd.ctlpt2.y+" "+cmd.target.x + "," + cmd.target.y;
+                case 'c':
+                str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " " + cmd.target.x + "," + cmd.target.y;
                 break;
-            case 'q': 
-                str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y+" "+cmd.target.x + "," + cmd.target.y;
+                case 'q':
+                str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.target.x + "," + cmd.target.y;
                 break;
-            } 
+            }
         }
         return str;
     }
     // take a data path, complete the chunk dictionnary with found chunks, and remove the chunk definition
     function findChunks(path) {
         var newpathdata = path.getAttribute("d"),
-            chunkSeparation,
-            chunkName,
-            chunk,
-            cmdList,
-            cmdIndex,
-            cmd, 
-            someChange = false;
-        path.chunks = []; // to know chunks defined in a path
+        chunkSeparation,
+        chunkName,
+        chunk,
+        cmdList,
+        cmdIndex,
+        cmd,
+        someChange = false;
+        path.chunks =[]; // to know chunks defined in a path
         cmdList = path.cmdList = superpath.svg_parse_path(newpathdata);
         cmdIndex = 0;
         do {
             cmd = cmdList.cmd[cmdIndex];
-            if ((cmd.command === superpath.OPENCHUNK)&&(existy(cmd.crtPt))) {
+            if ((cmd.command === superpath.OPENCHUNK) &&(existy(cmd.crtPt))) {
                 chunkName = cmd.chunkName;
-                chunk = superpath.chunks[chunkName] = {};
+                chunk = superpath.chunks[chunkName] = {
+                };
                 // T2D2 here it's possible that cmd.crtPt isn't defined; must add processing of that case
-                chunk.description = buildCmdList(cmd.strDescription, cmd.crtPt); // list of commands
+                chunk.description = buildCmdList(cmd.strDescription, cmd.crtPt);
+                // list of commands
                 chunk.reversedDescription = buildReversedCmdList(chunk.description);
                 chunk.path = path; // to know the path from which comes the chunk
                 chunk.data = strDescription(chunk.description);
                 chunk.rData = strDescription(chunk.reversedDescription);
                 // T2D2 process the replacement of the ( command
-                path.newpathdata = newpathdata.replace(newpathdata.slice(newpathdata.indexOf(superpath.OPENCHUNK), newpathdata.indexOf(superpath.ENDCHUNK)+1), chunk.data);
+                path.newpathdata = newpathdata.replace(newpathdata.slice(newpathdata.indexOf(superpath.OPENCHUNK), newpathdata.indexOf(superpath.ENDCHUNK) + 1), chunk.data);
                 someChange = true;
             }
             cmdIndex += 1;
-        } while (cmdList.cmd.length>cmdIndex);
+        }
+        while (cmdList.cmd.length > cmdIndex);
         return someChange;
     }
-// cmdList is obtained by calling  svg_parse_path on a path data
+    // cmdList is obtained by calling  svg_parse_path on a path data
     superpath.fullrelativePathCmdList = function (cmdList) {
         // transform the path data to use only relative commands
         var revCmdList = new superpath.CmdList,
-            crtPt = {},
-            endpt,
-            ctlpt1,
-            ctlpt2,
-            cmd,
-            crtcmdcode,
-            icmd = 0,
-            len = cmdList.cmd.length,
-            pt;
+        crtPt = {
+        },
+        endpt,
+        ctlpt1,
+        ctlpt2,
+        cmd,
+        crtcmdcode,
+        icmd = 0,
+        len = cmdList.cmd.length,
+        pt;
         crtPt.x = cmdList.cmd[0].target.x;
         crtPt.y = cmdList.cmd[0].target.y;
         while (len > icmd) {
             // pour chaque commande passer en relatif et calculer le nouveau point courant
             console.log(cmdList.cmd[icmd].command);
-            crtcmdcode = cmdList.cmd[icmd].command; 
+            crtcmdcode = cmdList.cmd[icmd].command;
             switch (crtcmdcode) {
-            case 'v':
-            case 'V':
-                cmd = {};
+                case 'v':
+                case 'V':
+                cmd = {
+                };
                 cmd.command = 'v';
-                cmd.crtPt = {};
-                pt = {};
+                cmd.crtPt = {
+                };
+                pt = {
+                };
                 cmd.crtPt.x = pt.x = revCmdList.cmd[icmd - 1].crtPt.x;
                 cmd.crtPt.y = pt.y = cmdList.cmd[icmd].d;
-                if (crtcmdcode==='V') {
-                    pt.y -= revCmdList.cmd[icmd - 1].crtPt.y; 
+                if (crtcmdcode === 'V') {
+                    pt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                 }
                 cmd.d = pt.y;
                 revCmdList.cmd.push(cmd);
                 break;
-            case 'h':
-            case 'H':
-                cmd = {};
+                case 'h':
+                case 'H':
+                cmd = {
+                };
                 cmd.command = 'h';
-                cmd.crtPt = {};
-                pt = {};
+                cmd.crtPt = {
+                };
+                pt = {
+                };
                 cmd.crtPt.x = pt.x = cmdList.cmd[icmd].d;
                 cmd.crtPt.y = pt.y = revCmdList.cmd[icmd - 1].crtPt.y;
-                if (crtcmdcode==='H') {
-                    pt.x -= revCmdList.cmd[icmd - 1].crtPt.x; 
+                if (crtcmdcode === 'H') {
+                    pt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
                 }
                 cmd.d = pt.x;
                 revCmdList.cmd.push(cmd);
                 break;
-            case 'm': // T2D2 check for relative move
-            case 'M':
-                cmd = {};
-                cmd.crtPt = {};
-                pt = {};
+                case 'm': // T2D2 check for relative move
+                case 'M':
+                cmd = {
+                };
+                cmd.crtPt = {
+                };
+                pt = {
+                };
                 cmd.command = 'M';
                 cmd.crtPt.x = pt.x = cmdList.cmd[icmd].target.x;
                 cmd.crtPt.y = pt.y = cmdList.cmd[icmd].target.y;
                 cmd.target = pt;
                 revCmdList.cmd.push(cmd);
                 break;
-            case 'L':
-            case 'l':
-                cmd = {};
+                case 'L':
+                case 'l':
+                cmd = {
+                };
                 cmd.command = 'l';
-                cmd.crtPt = {};
-                pt = {};
+                cmd.crtPt = {
+                };
+                pt = {
+                };
                 cmd.crtPt.x = pt.x = cmdList.cmd[icmd].target.x;
                 cmd.crtPt.y = pt.y = cmdList.cmd[icmd].target.y;
-                if (crtcmdcode==='L') {
-                    pt.x -= revCmdList.cmd[icmd - 1].crtPt.x; 
-                    pt.y -= revCmdList.cmd[icmd - 1].crtPt.y; 
+                if (crtcmdcode === 'L') {
+                    pt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
+                    pt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                 }
                 cmd.target = pt;
                 revCmdList.cmd.push(cmd);
                 break;
-            case 'q':
-            case 'Q':
-                cmd = {};
-                cmd.crtPt = {};
-                endpt = {};
-                ctlpt1 = {};
-                ctlpt2 = {};
+                case 'q':
+                case 'Q':
+                cmd = {
+                };
+                cmd.crtPt = {
+                };
+                endpt = {
+                };
+                ctlpt1 = {
+                };
+                ctlpt2 = {
+                };
                 cmd.command = 'q';
                 ctlpt1.x = cmdList.cmd[icmd].ctlpt1.x;
                 ctlpt1.y = cmdList.cmd[icmd].ctlpt1.y;
                 cmd.crtPt.x = endpt.x = cmdList.cmd[icmd].target.x;
                 cmd.crtPt.y = endpt.y = cmdList.cmd[icmd].target.y;
-                if (crtcmdcode==='Q')
-                {
+                if (crtcmdcode === 'Q') {
                     ctlpt1.x -= revCmdList.cmd[icmd - 1].crtPt.x;
                     ctlpt1.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                     endpt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
@@ -308,13 +329,18 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 cmd.target = endpt;
                 revCmdList.cmd.push(cmd);
                 break;
-            case 'c':
-            case 'C':
-                cmd = {};
-                cmd.crtPt = {};
-                endpt = {};
-                ctlpt1 = {};
-                ctlpt2 = {};
+                case 'c':
+                case 'C':
+                cmd = {
+                };
+                cmd.crtPt = {
+                };
+                endpt = {
+                };
+                ctlpt1 = {
+                };
+                ctlpt2 = {
+                };
                 cmd.command = 'c';
                 ctlpt1.x = cmdList.cmd[icmd].ctlpt1.x;
                 ctlpt1.y = cmdList.cmd[icmd].ctlpt1.y;
@@ -322,8 +348,7 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 ctlpt2.y = cmdList.cmd[icmd].ctlpt2.y;
                 cmd.crtPt.x = endpt.x = cmdList.cmd[icmd].target.x;
                 cmd.crtPt.y = endpt.y = cmdList.cmd[icmd].target.y;
-                if (crtcmdcode==='C')
-                {
+                if (crtcmdcode === 'C') {
                     ctlpt1.x -= revCmdList.cmd[icmd - 1].crtPt.x;
                     ctlpt1.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                     ctlpt2.x -= revCmdList.cmd[icmd - 1].crtPt.x;
@@ -336,15 +361,17 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 cmd.target = endpt;
                 revCmdList.cmd.push(cmd);
                 break;
-            case superpath.OPENCHUNK: 
-                cmd = {};
+                case superpath.OPENCHUNK:
+                cmd = {
+                };
                 cmd.command = superpath.OPENCHUNK;
                 cmd.chunkName = cmdList.cmd[icmd].chunkName;
                 cmd.strDescription = cmdList.cmd[icmd].strDescription;
                 revCmdList.cmd.push(cmd);
                 break;
-            case 'z': //
-                cmd = {};
+                case 'z': //
+                cmd = {
+                };
                 cmd.command = 'z';
                 revCmdList.cmd.push(cmd);
                 break;
@@ -363,17 +390,17 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
         I think it for chunk to(startchunk, endchunk) teh reversed chunk is from (lchunk-endchunk, lchunk-startchunk)
          */
         var newdata = "",
-            crtPt,
-            i,
-            cmd,
-            previousCmd,
-            pt,
-            ctrlPt,
-            targetPt,
-            ctrlPt1,
-            ctrlPt2,
-            closedPath = false,
-            cmdList = this.svg_parse_path(data);
+        crtPt,
+        i,
+        cmd,
+        previousCmd,
+        pt,
+        ctrlPt,
+        targetPt,
+        ctrlPt1,
+        ctrlPt2,
+        closedPath = false,
+        cmdList = this.svg_parse_path(data);
         // reverse the command list to build the new data
         // some commands depends of the current point, like Q,
         // so I need to add the current point when building the list
@@ -392,169 +419,180 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
             cmd = cmdList.cmd[i];
             previousCmd = cmdList.cmd[i - 1];
             switch (cmd.command) {
-            case 'l':
+                case 'l':
                 pt = cmd.target;
                 newdata += "l" + (-1.0 * pt.x) + "," + (-1.0 * pt.y);
                 break;
-            case 'L':
+                case 'L':
                 pt = previousCmd.target;
                 newdata += "L" + pt.x + "," + pt.y;
                 break;
-            case 'q':
+                case 'q':
                 ctrlPt = cmd.ctlpt1;
                 targetPt = cmd.target;
-                newdata += "q" + (-targetPt.x + ctrlPt.x) + "," + (-targetPt.y + ctrlPt.y) + " " + (-1.0 * targetPt.x) + "," + (-1.0 * targetPt.y);
+                newdata += "q" + (- targetPt.x + ctrlPt.x) + "," + (- targetPt.y + ctrlPt.y) + " " + (-1.0 * targetPt.x) + "," + (-1.0 * targetPt.y);
                 break;
-            case 'Q':
+                case 'Q':
                 pt = cmdList.cmd[i - 1].endPt;
                 ctrlPt = cmd.ctlpt1;
                 targetPt = cmd.target;
                 newdata += "Q" + ctrlPt.x + "," + ctrlPt.y + " " + pt.x + "," + pt.y;
                 break;
-            case 'c':
+                case 'c':
                 ctrlPt1 = cmd.ctlpt1;
                 ctrlPt2 = cmd.ctlpt2;
                 targetPt = cmd.target;
                 newdata += "c" +
-                    (-targetPt.x + ctrlPt2.x) + "," + (-targetPt.y + ctrlPt2.y) + " " +
-                    (-targetPt.x + ctrlPt1.x) + "," + (-targetPt.y + ctrlPt1.y) + " " +
-                    (-1.0 * targetPt.x) + "," + (-1.0 * targetPt.y);
+                (- targetPt.x + ctrlPt2.x) + "," + (- targetPt.y + ctrlPt2.y) + " " +
+                (- targetPt.x + ctrlPt1.x) + "," + (- targetPt.y + ctrlPt1.y) + " " +
+                (-1.0 * targetPt.x) + "," + (-1.0 * targetPt.y);
                 break;
-            case 'C':
+                case 'C':
                 pt = cmdList.cmd[i - 1].endPt;
                 ctrlPt1 = cmd.ctlpt1;
                 ctrlPt2 = cmd.ctlpt2;
                 targetPt = cmd.target;
                 newdata += "C" + ctrlPt2.x + "," + ctrlPt2.y + " " + ctrlPt1.x + "," + ctrlPt1.y + " " + pt.x + "," + pt.y;
                 break;
-            case 'z': //
+                case 'z': //
                 break;
             }
             i -= 1;
         }
-        newdata += (closedPath ? "z" : "");
+        newdata += (closedPath ? "z": "");
         return newdata;
     };
-    superpath.CmdList = function() {
-        this.cmd = [];
-        this.processCurrentPoints = function(startCmd) {
+    superpath.CmdList = function () {
+        this.cmd =[];
+        this.processCurrentPoints = function (startCmd) {
             var icmd = startCmd,
-                crtCmd;
+            crtCmd;
             for (; icmd > 0; icmd -= 1) {
-            // T2D2
+                // T2D2
             }
         };
-        this.getSubpathStartingPoint = function(id) {
+        this.getSubpathStartingPoint = function (id) {
             var icmd = 0,
-                cmd;
-            for (icmd=0; this.cmd.length>icmd+1; icmd += 1) {
+            cmd;
+            for (icmd = 0; this.cmd.length > icmd + 1; icmd += 1) {
                 cmd = this.cmd[icmd];
-                if ((cmd.command===superpath.OPENCHUNK)&&(cmd.chunkName===id)) {
+                if ((cmd.command === superpath.OPENCHUNK) &&(cmd.chunkName === id)) {
                     if (existy(cmd.crtPt)) {
                         return cmd.crtPt;
                     } else {
-                    // try to process the starting point for the subpath
-                    // here it could be efficient to only start from the current cmd and reward until the first known absolute point
+                        // try to process the starting point for the subpath
+                        // here it could be efficient to only start from the current cmd and reward until the first known absolute point
                         this.processCurrentPoints(icmd);
                     }
                 }
             }
             return null;
         };
-        this.reverse = function(){  // works only with relative commands, except the M
-          // T2D2 process all the possible commands 
-          var revCmdList = new superpath.CmdList,
-              i,
-              cmd,
-              pt,
-              target;
-          for (i=this.cmd.length - 1; i >= 0; i -= 1) {
-              cmd = {};
-              cmd.command = this.cmd[i].command;
-              switch(cmd.command) {
-              case 'M' :
-                  pt = {};
-                  pt.x = -1 * this.cmd[i].target.x; 
-                  pt.y = -1 * this.cmd[i].target.y;
-                  cmd.target = pt;
-                  break; 
-              case 'h' :
-              case 'v' :
-                  cmd.d = -1 * this.cmd[i].d;
-                  break; 
-              case 'l' :
-                  pt = {};
-                  pt.x = -1 * this.cmd[i].target.x; // T2D2 diffÃ©rencier suivant la commande 
-                  pt.y = -1 * this.cmd[i].target.y;
-                  cmd.target = pt;
-                  break; 
-              case 'c' :
-                  target = {};
-                  target.x = this.cmd[i].target.x; 
-                  target.y = this.cmd[i].target.y; 
-                  pt = {};
-                  pt.x = this.cmd[i].ctlpt2.x - target.x; 
-                  pt.y = this.cmd[i].ctlpt2.y - target.y;
-                  cmd.ctlpt1 = pt;
-                  pt = {};
-                  pt.x = this.cmd[i].ctlpt1.x - target.x; 
-                  pt.y = this.cmd[i].ctlpt1.y - target.y;
-                  cmd.ctlpt2 = pt;
-                  pt = {};
-                  pt.x = -1 * target.x; 
-                  pt.y = -1 * target.y;
-                  cmd.target = pt;
-                  break; 
-              case 'q' :
-                  target = {};
-                  target.x = this.cmd[i].target.x; 
-                  target.y = this.cmd[i].target.y; 
-                  pt = {};
-                  pt.x = this.cmd[i].ctlpt1.x - target.x; 
-                  pt.y = this.cmd[i].ctlpt1.y - target.y;
-                  cmd.ctlpt1 = pt;
-                  pt = {};
-                  pt.x = -1 * target.x; 
-                  pt.y = -1 * target.y;
-                  cmd.target = pt;
-                  break; 
-              }
-              revCmdList.push(cmd);
-          }
-          return revCmdList;
-        }    
-        this.push = function(cmd) {
+        this.reverse = function () {
+            // works only with relative commands, except the M
+            // T2D2 process all the possible commands
+            var revCmdList = new superpath.CmdList,
+            i,
+            cmd,
+            pt,
+            target;
+            for (i = this.cmd.length - 1; i >= 0; i -= 1) {
+                cmd = {
+                };
+                cmd.command = this.cmd[i].command;
+                switch (cmd.command) {
+                    case 'M':
+                    pt = {
+                    };
+                    pt.x = -1 * this.cmd[i].target.x;
+                    pt.y = -1 * this.cmd[i].target.y;
+                    cmd.target = pt;
+                    break;
+                    case 'h':
+                    case 'v':
+                    cmd.d = -1 * this.cmd[i].d;
+                    break;
+                    case 'l':
+                    pt = {
+                    };
+                    pt.x = -1 * this.cmd[i].target.x; // T2D2 diffÃ©rencier suivant la commande
+                    pt.y = -1 * this.cmd[i].target.y;
+                    cmd.target = pt;
+                    break;
+                    case 'c':
+                    target = {
+                    };
+                    target.x = this.cmd[i].target.x;
+                    target.y = this.cmd[i].target.y;
+                    pt = {
+                    };
+                    pt.x = this.cmd[i].ctlpt2.x - target.x;
+                    pt.y = this.cmd[i].ctlpt2.y - target.y;
+                    cmd.ctlpt1 = pt;
+                    pt = {
+                    };
+                    pt.x = this.cmd[i].ctlpt1.x - target.x;
+                    pt.y = this.cmd[i].ctlpt1.y - target.y;
+                    cmd.ctlpt2 = pt;
+                    pt = {
+                    };
+                    pt.x = -1 * target.x;
+                    pt.y = -1 * target.y;
+                    cmd.target = pt;
+                    break;
+                    case 'q':
+                    target = {
+                    };
+                    target.x = this.cmd[i].target.x;
+                    target.y = this.cmd[i].target.y;
+                    pt = {
+                    };
+                    pt.x = this.cmd[i].ctlpt1.x - target.x;
+                    pt.y = this.cmd[i].ctlpt1.y - target.y;
+                    cmd.ctlpt1 = pt;
+                    pt = {
+                    };
+                    pt.x = -1 * target.x;
+                    pt.y = -1 * target.y;
+                    cmd.target = pt;
+                    break;
+                }
+                revCmdList.push(cmd);
+            }
+            return revCmdList;
+        }
+        this.push = function (cmd) {
             this.cmd.push(cmd);
         }
         this.toString = function () {
-          // T2D2 process all the possible commands 
+            // T2D2 process all the possible commands
             var i = 0,
-                ipar,
-                str = "",
-                cmd;
-            while (this.cmd.length>i) {
-              cmd = this.cmd[i];
-              str += cmd.command;
+            ipar,
+            str = "",
+            cmd;
+            while (this.cmd.length > i) {
+                cmd = this.cmd[i];
+                str += cmd.command;
                 switch (cmd.command) {
-                case superpath.OPENCHUNK:
-                    str += cmd.chunkName + superpath.SEPARATOR + cmd.strDescription +superpath.ENDCHUNK;
+                    case superpath.OPENCHUNK:
+                    str += cmd.chunkName + superpath.SEPARATOR + cmd.strDescription + superpath.ENDCHUNK;
                     break;
-                case superpath.DIRECTREF:
-                case superpath.REVERSEDREF:
+                    case superpath.DIRECTREF:
+                    case superpath.REVERSEDREF:
                     str += cmd.ref + superpath.SEPARATOR;
                     break;
-                case "h":
-                case "v":
-                case "H":
-                case "V":
+                    case "h":
+                    case "v":
+                    case "H":
+                    case "V":
                     str += cmd.d;
                     break;
-                case "z": break;
-                default:
-                    if (existy(cmd.ctlpt1)) str+= cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " ";
-                    if (existy(cmd.ctlpt2)) str+= cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " ";
-                    if (existy(cmd.target)) str+= cmd.target.x + "," + cmd.target.y;
-                    break;  
+                    case "z": break;
+                    default:
+                    if (existy(cmd.ctlpt1)) str += cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " ";
+                    if (existy(cmd.ctlpt2)) str += cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " ";
+                    if (existy(cmd.target)) str += cmd.target.x + "," + cmd.target.y;
+                    break;
                 }
                 i += 1;
             }
@@ -569,21 +607,21 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
     // recursivity and circularity of the chunk functionality must be analyzed
     superpath.svg_parse_path = function (attribute_content) {
         var d = attribute_content,
-            cmdList = new superpath.CmdList,
-            pp,
-            p,
-            newP,
-            cmd,
-            coord,
-            cntrl,
-            cntrl1,
-            cntrl2,
-            cp,
-            t,
-            idsubpath,
-            descriptionsubpath,
-            commands,
-            regex;
+        cmdList = new superpath.CmdList,
+        pp,
+        p,
+        newP,
+        cmd,
+        coord,
+        cntrl,
+        cntrl1,
+        cntrl2,
+        cp,
+        t,
+        idsubpath,
+        descriptionsubpath,
+        commands,
+        regex;
         this.compressSpaces = function (s) {
             return s.replace(/[\s\r\t\n]+/gm, ' ');
         };
@@ -591,22 +629,31 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
             return s.replace(/^\s+|\s+$/g, '');
         };
         // T2D2: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
-        d = d.replace(/,/gm, ' '); // get rid of all commas
+        d = d.replace(/,/gm, ' ');
+        // get rid of all commas
         // T2D2 undestand why the following line is repeted two times
-        commands = "MmZzLlHhVvCcSsQqTtAa"+superpath.OPENCHUNK+superpath.DIRECTREF+superpath.REVERSEDREF+superpath.ENDCHUNK;
+        commands = "MmZzLlHhVvCcSsQqTtAa" + superpath.OPENCHUNK + superpath.DIRECTREF + superpath.REVERSEDREF + superpath.ENDCHUNK;
         regex = new RegExp("([" + commands + "])([" + commands + "])", "gm");
-        d = d.replace(regex, '$1 $2'); // separate commands from commands
-        d = d.replace(regex, '$1 $2'); // separate commands from commands
+        d = d.replace(regex, '$1 $2');
+        // separate commands from commands
+        d = d.replace(regex, '$1 $2');
+        // separate commands from commands
         regex = new RegExp("([" + commands + "])([^\s])", "gm");
-        d = d.replace(regex, '$1 $2'); // separate commands from points
+        d = d.replace(regex, '$1 $2');
+        // separate commands from points
         regex = new RegExp("([^\s])([" + commands + "])", "gm");
-        d = d.replace(regex, '$1 $2'); // separate commands from points
-        d = d.replace(/([0-9])([+\-])/gm, '$1 $2'); // separate digits when no comma
-        d = d.replace(/(\.[0-9]*)(\.)/gm, '$1 $2'); // separate digits when no comma
-        d = d.replace(/([Aa](\s+[0-9]+){3})\s+ ([01])\s*([01])/gm, '$1 $3 $4 '); // shorthand elliptical arc path syntax
-        d = this.compressSpaces(d); // compress multiple spaces
+        d = d.replace(regex, '$1 $2');
+        // separate commands from points
+        d = d.replace(/([0-9])([+\-])/gm, '$1 $2');
+        // separate digits when no comma
+        d = d.replace(/(\.[0-9]*)(\.)/gm, '$1 $2');
+        // separate digits when no comma
+        d = d.replace(/([Aa](\s+[0-9]+){3})\s+ ([01])\s*([01])/gm, '$1 $3 $4 ');
+        // shorthand elliptical arc path syntax
+        d = this.compressSpaces(d);
+        // compress multiple spaces
         d = this.trim(d);
-        this.PathParser = new (function(d) {
+        this.PathParser = new (function (d) {
             this.tokens = d.split(' ');
             this.reset = function () {
                 this.i = -1;
@@ -615,8 +662,8 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 this.start = new this.Point(0, 0);
                 this.control = new this.Point(0, 0);
                 this.current = new this.Point(0, 0);
-                this.points = [];
-                this.angles = [];
+                this.points =[];
+                this.angles =[];
             };
             this.isEnd = function () {
                 return this.i >= this.tokens.length - 1;
@@ -625,45 +672,50 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 if (this.isEnd()) {
                     return true;
                 }
-                return this.tokens[this.i + 1].match(/^[A-Za-z(#!]$/) !== null;
+                return this.tokens[ this.i + 1].match(/^[A-Za-z(#!]$/) !== null;
             };
             this.isRelativeCommand = function () {
                 switch (this.command) {
-                case 'm':
-                case 'l':
-                case 'h':
-                case 'v':
-                case 'c':
-                case 's':
-                case 'q':
-                case 't':
-                case 'a':
-                case 'z':
-                // folowing lines are for superpath extension
-                case '#':
-                case '!':
-                case superpath.OPENCHUNK:
+                    case 'm':
+                    case 'l':
+                    case 'h':
+                    case 'v':
+                    case 'c':
+                    case 's':
+                    case 'q':
+                    case 't':
+                    case 'a':
+                    case 'z':
+                    // folowing lines are for superpath extension
+                    case '#':
+                    case '!':
+                    case superpath.OPENCHUNK:
                     return true;
                 }
                 return false;
             };
             this.getToken = function () {
                 this.i += 1;
-                return this.tokens[this.i];
+                return this.tokens[ this.i];
             };
             this.getSubpathRefId = function () {
                 var id = "";
                 do {
                     id += this.getToken();
-                } while (id.indexOf("|")===-1);
+                }
+                while (id.indexOf("|") === -1);
                 // remove spaces coming from the initial code of the parser which segments the tokens
-                while (id.indexOf(" ")!== -1) { id = id.replace(" ", ""); };
-                return id.slice(0,id.indexOf("|"));
+                while (id.indexOf(" ") !== -1) {
+                    id = id.replace(" ", "");
+                };
+                return id.slice(0, id.indexOf("|"));
             };
             this.getSubpathDesc = function () {
                 var str = this.getToken();
                 var toc = this.getToken();
-                while (toc !== superpath.ENDCHUNK) { str +=  toc+" "; toc = this.getToken(); };
+                while (toc !== superpath.ENDCHUNK) {
+                    str += toc + " "; toc = this.getToken();
+                };
                 return str;
             };
             this.getScalar = function () {
@@ -676,7 +728,7 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
             this.getPoint = function (relative) {
                 // if relative is false, make the point absolute
                 var p = new this.Point(this.getScalar(), this.getScalar());
-                return (relative ? p : this.makeAbsolute(p));
+                return (relative ? p: this.makeAbsolute(p));
             };
             this.getAsControlPoint = function (relative) {
                 var p = this.getPoint(relative);
@@ -690,9 +742,9 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
             };
             this.getReflectedControlPoint = function () {
                 if (this.previousCommand.toLowerCase() !== 'c' &&
-                        this.previousCommand.toLowerCase() !== 's' &&
-                        this.previousCommand.toLowerCase() !== 'q' &&
-                        this.previousCommand.toLowerCase() !== 't') {
+                this.previousCommand.toLowerCase() !== 's' &&
+                this.previousCommand.toLowerCase() !== 'q' &&
+                this.previousCommand.toLowerCase() !== 't') {
                     return this.current;
                 }
                 // reflect point
@@ -713,107 +765,122 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
         })(d);
         pp = this.PathParser;
         pp.reset();
-        while (!pp.isEnd()) {
+        while (! pp.isEnd()) {
             pp.nextCommand();
             switch (pp.command) {
-            case 'M':
-            case 'm':
+                case 'M':
+                case 'm':
                 p = pp.getAsCurrentPoint(pp.isRelativeCommand());
-                cmd = {};
+                cmd = {
+                };
                 cmd.command = pp.command;
                 cmd.target = p;
                 cmd.endPt = p;
                 cmd.absEndPt = p;
                 cmdList.push(cmd);
                 pp.start = pp.current;
-                while (!pp.isCommandOrEnd()) {
+                while (! pp.isCommandOrEnd()) {
                     p = pp.getAsCurrentPoint(pp.isRelativeCommand());
-                    cmd = {};
+                    cmd = {
+                    };
                     cmd.command = "L";
                     cmd.target = p;
-                    cmd.endPt = {};
+                    cmd.endPt = {
+                    };
                     cmd.endPt.x = p.x;
                     cmd.endPt.y = p.y;
-                    cmd.absEndPt = {};
+                    cmd.absEndPt = {
+                    };
                     cmd.absEndPt.x = p.x;
                     cmd.absEndPt.y = p.y;
                     cmdList.push(cmd);
                 }
                 break;
-            case 'L':
-            case 'l':
+                case 'L':
+                case 'l':
                 do {
-                    cmd = {};
+                    cmd = {
+                    };
                     cmd.current = pp.current;
                     p = pp.getAsCurrentPoint(pp.isRelativeCommand());
                     cmd.command = pp.command;
                     cmd.target = p;
-                    cmd.endPt = {};
+                    cmd.endPt = {
+                    };
                     cmd.endPt.x = p.x;
                     cmd.endPt.y = p.y;
-                    cmd.absEndPt = {};
+                    cmd.absEndPt = {
+                    };
                     cmd.absEndPt.x = p.x;
                     cmd.absEndPt.y = p.y;
                     if (pp.isRelativeCommand(cmd.command)) {
-                        if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
-                          cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length-1].absEndPt.x;
-                          cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length-1].absEndPt.y;
+                        if (existy(cmdList.cmd[cmdList.cmd.length -1].absEndPt)) {
+                            cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length -1].absEndPt.x;
+                            cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length -1].absEndPt.y;
                         }
                     }
                     cmdList.push(cmd);
-                } while (!pp.isCommandOrEnd());
+                }
+                while (! pp.isCommandOrEnd());
                 break;
-            case 'H':
-            case 'h':
+                case 'H':
+                case 'h':
                 do {
-                    cmd = {};
+                    cmd = {
+                    };
                     cmd.current = pp.current;
                     coord = pp.getScalar();
                     t = pp.isRelativeCommand();
-                    newP = new pp.Point((pp.isRelativeCommand() ? pp.current.x : 0) + coord, pp.current.y);
+                    newP = new pp.Point((pp.isRelativeCommand() ? pp.current.x: 0) + coord, pp.current.y);
                     pp.current = newP;
                     cmd.command = pp.command;
-                    cmd.d = (pp.isRelativeCommand() ? pp.current.x : 0) + coord;
+                    cmd.d = (pp.isRelativeCommand() ? pp.current.x: 0) + coord;
                     cmd.endPt = newP;
-                    cmd.absEndPt = {};
+                    cmd.absEndPt = {
+                    };
                     cmd.absEndPt.x = newP.x;
                     cmd.absEndPt.y = newP.y;
                     if (pp.isRelativeCommand(cmd.command)) {
-                        if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
-                          cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length-1].absEndPt.x;
-                          cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length-1].absEndPt.y;
+                        if (existy(cmdList.cmd[cmdList.cmd.length -1].absEndPt)) {
+                            cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length -1].absEndPt.x;
+                            cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length -1].absEndPt.y;
                         }
                     }
                     cmdList.push(cmd);
-                } while (!pp.isCommandOrEnd());
+                }
+                while (! pp.isCommandOrEnd());
                 break;
-            case 'V':
-            case 'v':
+                case 'V':
+                case 'v':
                 do {
-                    cmd = {};
+                    cmd = {
+                    };
                     cmd.current = pp.current;
                     coord = pp.getScalar();
-                    newP = new pp.Point(pp.current.x, (pp.isRelativeCommand() ? pp.current.y : 0) + coord);
+                    newP = new pp.Point(pp.current.x, (pp.isRelativeCommand() ? pp.current.y: 0) + coord);
                     pp.current = newP;
                     cmd.command = pp.command;
-                    cmd.d = (pp.isRelativeCommand() ? pp.current.x : 0) + coord;
+                    cmd.d = (pp.isRelativeCommand() ? pp.current.x: 0) + coord;
                     cmd.endPt = newP;
-                    cmd.absEndPt = {};
+                    cmd.absEndPt = {
+                    };
                     cmd.absEndPt.x = newP.x;
                     cmd.absEndPt.y = newP.y;
                     if (pp.isRelativeCommand(cmd.command)) {
-                        if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
-                          cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length-1].absEndPt.x;
-                          cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length-1].absEndPt.y;
+                        if (existy(cmdList.cmd[cmdList.cmd.length -1].absEndPt)) {
+                            cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length -1].absEndPt.x;
+                            cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length -1].absEndPt.y;
                         }
                     }
                     cmdList.push(cmd);
-                } while (!pp.isCommandOrEnd());
+                }
+                while (! pp.isCommandOrEnd());
                 break;
-            case 'C':
-            case 'c':
+                case 'C':
+                case 'c':
                 do {
-                    cmd = {};
+                    cmd = {
+                    };
                     cmd.current = pp.current;
                     cntrl1 = pp.getAsControlPoint(pp.isRelativeCommand());
                     cntrl2 = pp.getAsControlPoint(pp.isRelativeCommand());
@@ -823,20 +890,22 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                     cmd.ctlpt2 = cntrl2;
                     cmd.target = cp;
                     cmd.endPt = cp;
-                    cmd.absEndPt = {};
+                    cmd.absEndPt = {
+                    };
                     cmd.absEndPt.x = cp.x;
                     cmd.absEndPt.y = cp.y;
                     if (pp.isRelativeCommand(cmd.command)) {
-                        if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
-                          cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length-1].absEndPt.x;
-                          cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length-1].absEndPt.y;
+                        if (existy(cmdList.cmd[cmdList.cmd.length -1].absEndPt)) {
+                            cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length -1].absEndPt.x;
+                            cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length -1].absEndPt.y;
                         }
                     }
                     cmdList.push(cmd);
-                } while (!pp.isCommandOrEnd());
+                }
+                while (! pp.isCommandOrEnd());
                 break;
-            case 'S':
-            case 's':
+                case 'S':
+                case 's':
                 /*
                 while (!pp.isCommandOrEnd()) {
                 var curr = pp.current;
@@ -848,10 +917,11 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 }
                  */
                 break;
-            case 'Q':
-            case 'q':
+                case 'Q':
+                case 'q':
                 do {
-                    cmd = {};
+                    cmd = {
+                    };
                     cmd.current = pp.current;
                     cntrl = pp.getAsControlPoint(pp.isRelativeCommand());
                     cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
@@ -859,51 +929,58 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                     cmd.ctlpt1 = cntrl;
                     cmd.target = cp;
                     cmd.endPt = cp;
-                    cmd.absEndPt = {};
+                    cmd.absEndPt = {
+                    };
                     cmd.absEndPt.x = cp.x;
                     cmd.absEndPt.y = cp.y;
                     if (pp.isRelativeCommand(cmd.command)) {
-                        if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
-                          cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length-1].absEndPt.x;
-                          cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length-1].absEndPt.y;
+                        if (existy(cmdList.cmd[cmdList.cmd.length -1].absEndPt)) {
+                            cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length -1].absEndPt.x;
+                            cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length -1].absEndPt.y;
                         }
                     }
                     cmdList.push(cmd);
-                } while (!pp.isCommandOrEnd());
+                }
+                while (! pp.isCommandOrEnd());
                 break;
-            case superpath.OPENCHUNK:
-                cmd = {};
+                case superpath.OPENCHUNK:
+                cmd = {
+                };
                 cmd.command = pp.command;
                 idsubpath = pp.getSubpathRefId();
                 descriptionsubpath = pp.getSubpathDesc();
                 cmd.chunkName = idsubpath;
-                cmd.strDescription = descriptionsubpath;  // T2D2 replace it by a list of commands??
-                if (existy(cmdList.cmd[cmdList.cmd.length-1].absEndPt)) {
-                    cmd.crtPt = cmdList.cmd[cmdList.cmd.length-1].absEndPt; 
+                cmd.strDescription = descriptionsubpath; // T2D2 replace it by a list of commands??
+                if (existy(cmdList.cmd[cmdList.cmd.length -1].absEndPt)) {
+                    cmd.crtPt = cmdList.cmd[cmdList.cmd.length -1].absEndPt;
                 }
                 cmdList.push(cmd);
                 break;
-            case '!':
-            case '#':
-                cmd = {};
+                case '!':
+                case '#':
+                cmd = {
+                };
                 cmd.command = pp.command;
                 cmd.ref = pp.getSubpathRefId()
                 cmdList.push(cmd);
                 break;
-            case 'T':
-            case 't':
+                case 'T':
+                case 't':
                 break;
-            case 'A':
-            case 'a':
+                case 'A':
+                case 'a':
                 break;
-            case 'Z':
-            case 'z':
+                case 'Z':
+                case 'z':
                 do {
-                    cmd = {};
+                    cmd = {
+                    };
                     cmd.current = pp.current;
                     cmd.command = pp.command;
                     cmdList.push(cmd);
-                } while (!pp.isCommandOrEnd()); // T2D2 verify this strange while
+                }
+                while (! pp.isCommandOrEnd());
+                // T2D2 verify this strange while
                 break;
             }
         }
@@ -925,32 +1002,35 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
     start from the ( and go backward until finding either a command with an absolute end point (absEndPt) or an absolute command (which gives us the corresponding absEndPt)
     if I encounter a ), I can't transform the current chunk until that previous reference will be solved
     if I find an absEndPt, I can propagate the absolute knowledge until the begining of the current chunk and solve it
-    */
+     */
     superpath.expandPaths = function () {
         var pathlist = document.getElementsByTagName("path"),
-            len,
-            iPath = 0,
-            path,
-            pathdata,
-            pathDefinerList = [],
-            pathDRefList = [],
-            pathIRefList = [], 
-            someChange = false,
-            pathChange = false;
+        len,
+        iPath = 0,
+        path,
+        pathdata,
+        pathDefinerList =[],
+        pathDRefList =[],
+        pathIRefList =[],
+        someChange = false,
+        pathChange = false;
         len = pathlist.length;
         for (iPath = 0; len > iPath; iPath += 1) {
             path = pathlist[iPath];
             pathdata = path.getAttribute("d");
             // build list of path containing a chunk definition
             if (pathdata.indexOf(superpath.OPENCHUNK) !== -1) {
+                path.srcData = pathdata;
                 pathDefinerList.push(path);
             }
             // build list of path containing a chunk direct reference
             if (pathdata.indexOf(superpath.DIRECTREF) !== -1) {
+                path.srcData = pathdata;
                 pathDRefList.push(path);
             }
             // build list of path containing a chunk inverse reference
             if (pathdata.indexOf(superpath.REVERSEDREF) !== -1) {
+                path.srcData = pathdata;
                 pathIRefList.push(path);
             }
         }
@@ -961,15 +1041,16 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
             iPath = 0;
             while (pathDefinerList.length > iPath) {
                 path = pathDefinerList[iPath];
-                pathChange = findChunks(path); // find and define chunks
+                pathChange = findChunks(path);
+                // find and define chunks
                 if (pathChange) {
                     path.setAttribute("d", path.newpathdata);
-                    if (path.newpathdata.indexOf(superpath.OPENCHUNK) === -1) { 
-                      // remove the path from the list of definers if completely solved
-                        pathDefinerList.splice(iPath, 1); 
+                    if (path.newpathdata.indexOf(superpath.OPENCHUNK) === -1) {
+                        // remove the path from the list of definers if completely solved
+                        pathDefinerList.splice(iPath, 1);
                     }
                     someChange = true;
-                } 
+                }
                 iPath += 1;
             }
             // expand direct chunks references
@@ -980,11 +1061,11 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 if (pathChange) {
                     path.setAttribute("d", path.newpathdata);
                     // remove the path from the list of direct reference if completely solved
-                    if (path.newpathdata.indexOf(superpath.DIRECTREF) === -1) { 
-                        pathDRefList.splice(iPath, 1); 
+                    if (path.newpathdata.indexOf(superpath.DIRECTREF) === -1) {
+                        pathDRefList.splice(iPath, 1);
                     }
                     someChange = true;
-                } 
+                }
                 iPath += 1;
             };
             // expand reversed chunks
@@ -995,16 +1076,17 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 if (pathChange) {
                     path.setAttribute("d", path.newpathdata);
                     // remove the path from the list of reversed reference if completely solved
-                    if (path.newpathdata.indexOf(superpath.REVERSEDREF) === -1) { 
-                        pathIRefList.splice(iPath, 1); 
+                    if (path.newpathdata.indexOf(superpath.REVERSEDREF) === -1) {
+                        pathIRefList.splice(iPath, 1);
                     }
                     someChange = true;
                 } else {
-                } 
+                }
                 iPath += 1;
             }
-        } while (someChange);
-        if ((pathDefinerList.length!==0)||(pathDRefList.length!==0)||(pathIRefList.length!==0)) {
+        }
+        while (someChange);
+        if ((pathDefinerList.length !== 0) ||(pathDRefList.length !== 0) ||(pathIRefList.length !== 0)) {
             console.log("Problem: some chunk reference seems impossible to solve!");
         }
     };
