@@ -462,27 +462,21 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
         newdata += (closedPath ? "z": "");
         return newdata;
     };
+    superpath.Point = function (x, y) {
+        this.x = x;
+        this.y = y;
+        };
     superpath.CmdList = function () {
         this.cmd =[];
-        this.processCurrentPoints = function (startCmd) {
-            var icmd = startCmd,
-            crtCmd;
-            for (; icmd > 0; icmd -= 1) {
-                // T2D2
-            }
-        };
         this.getSubpathStartingPoint = function (id) {
+            // I suppose that if the chunk exists, it has a startingPoint
             var icmd = 0,
-            cmd;
+                cmd;
             for (icmd = 0; this.cmd.length > icmd + 1; icmd += 1) {
                 cmd = this.cmd[icmd];
                 if ((cmd.command === superpath.OPENCHUNK) &&(cmd.chunkName === id)) {
                     if (existy(cmd.crtPt)) {
                         return cmd.crtPt;
-                    } else {
-                        // try to process the starting point for the subpath
-                        // here it could be efficient to only start from the current cmd and reward until the first known absolute point
-                        this.processCurrentPoints(icmd);
                     }
                 }
             }
@@ -502,10 +496,7 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 cmd.command = this.cmd[i].command;
                 switch (cmd.command) {
                     case 'M':
-                    pt = {
-                    };
-                    pt.x = -1 * this.cmd[i].target.x;
-                    pt.y = -1 * this.cmd[i].target.y;
+                    pt = new superpath.Point(-1 * this.cmd[i].target.x, -1 * this.cmd[i].target.y);
                     cmd.target = pt;
                     break;
                     case 'h':
@@ -513,48 +504,19 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                     cmd.d = -1 * this.cmd[i].d;
                     break;
                     case 'l':
-                    pt = {
-                    };
-                    pt.x = -1 * this.cmd[i].target.x; // T2D2 diffÃ©rencier suivant la commande
-                    pt.y = -1 * this.cmd[i].target.y;
+                    pt = new superpath.Point(-1 * this.cmd[i].target.x, -1 * this.cmd[i].target.y);
                     cmd.target = pt;
                     break;
                     case 'c':
-                    target = {
-                    };
-                    target.x = this.cmd[i].target.x;
-                    target.y = this.cmd[i].target.y;
-                    pt = {
-                    };
-                    pt.x = this.cmd[i].ctlpt2.x - target.x;
-                    pt.y = this.cmd[i].ctlpt2.y - target.y;
-                    cmd.ctlpt1 = pt;
-                    pt = {
-                    };
-                    pt.x = this.cmd[i].ctlpt1.x - target.x;
-                    pt.y = this.cmd[i].ctlpt1.y - target.y;
-                    cmd.ctlpt2 = pt;
-                    pt = {
-                    };
-                    pt.x = -1 * target.x;
-                    pt.y = -1 * target.y;
-                    cmd.target = pt;
+                    target = new superpath.Point(this.cmd[i].target.x, this.cmd[i].target.y);
+                    cmd.ctlpt1 = new superpath.Point(this.cmd[i].ctlpt2.x - target.x, this.cmd[i].ctlpt2.y - target.y);
+                    cmd.ctlpt2 = new superpath.Point(this.cmd[i].ctlpt1.x - target.x, this.cmd[i].ctlpt1.y - target.y);
+                    cmd.target = new superpath.Point(-1 * target.x, -1 * target.y);
                     break;
                     case 'q':
-                    target = {
-                    };
-                    target.x = this.cmd[i].target.x;
-                    target.y = this.cmd[i].target.y;
-                    pt = {
-                    };
-                    pt.x = this.cmd[i].ctlpt1.x - target.x;
-                    pt.y = this.cmd[i].ctlpt1.y - target.y;
-                    cmd.ctlpt1 = pt;
-                    pt = {
-                    };
-                    pt.x = -1 * target.x;
-                    pt.y = -1 * target.y;
-                    cmd.target = pt;
+                    target = new superpath.Point(this.cmd[i].target.x, this.cmd[i].target.y);
+                    cmd.ctlpt1 = new superpath.Point(this.cmd[i].ctlpt1.x - target.x, this.cmd[i].ctlpt1.y - target.y);
+                    cmd.target = new superpath.Point(-1 * target.x, -1 * target.y);
                     break;
                 }
                 revCmdList.push(cmd);
@@ -659,9 +621,9 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 this.i = -1;
                 this.command = '';
                 this.previousCommand = '';
-                this.start = new this.Point(0, 0);
-                this.control = new this.Point(0, 0);
-                this.current = new this.Point(0, 0);
+                this.start = new superpath.Point(0, 0);
+                this.control = new superpath.Point(0, 0);
+                this.current = new superpath.Point(0, 0);
                 this.points =[];
                 this.angles =[];
             };
@@ -687,8 +649,8 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                     case 'a':
                     case 'z':
                     // folowing lines are for superpath extension
-                    case '#':
-                    case '!':
+                    case superpath.DIRECTREF:
+                    case superpath.REVERSEDREF:
                     case superpath.OPENCHUNK:
                     return true;
                 }
@@ -727,7 +689,7 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
             };
             this.getPoint = function (relative) {
                 // if relative is false, make the point absolute
-                var p = new this.Point(this.getScalar(), this.getScalar());
+                var p = new superpath.Point(this.getScalar(), this.getScalar());
                 return (relative ? p: this.makeAbsolute(p));
             };
             this.getAsControlPoint = function (relative) {
@@ -748,12 +710,8 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                     return this.current;
                 }
                 // reflect point
-                var p = new this.Point(2 * this.current.x - this.control.x, 2 * this.current.y - this.control.y);
+                var p = new superpath.Point(2 * this.current.x - this.control.x, 2 * this.current.y - this.control.y);
                 return p;
-            };
-            this.Point = function (x, y) {
-                this.x = x;
-                this.y = y;
             };
             this.makeAbsolute = function (p) {
                 if (this.isRelativeCommand()) {
@@ -771,8 +729,7 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 case 'M':
                 case 'm':
                 p = pp.getAsCurrentPoint(pp.isRelativeCommand());
-                cmd = {
-                };
+                cmd = {};
                 cmd.command = pp.command;
                 cmd.target = p;
                 cmd.endPt = p;
@@ -781,38 +738,24 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 pp.start = pp.current;
                 while (! pp.isCommandOrEnd()) {
                     p = pp.getAsCurrentPoint(pp.isRelativeCommand());
-                    cmd = {
-                    };
+                    cmd = {};
                     cmd.command = "L";
                     cmd.target = p;
-                    cmd.endPt = {
-                    };
-                    cmd.endPt.x = p.x;
-                    cmd.endPt.y = p.y;
-                    cmd.absEndPt = {
-                    };
-                    cmd.absEndPt.x = p.x;
-                    cmd.absEndPt.y = p.y;
+                    cmd.endPt = new superpath.Point( p.x, p.y);
+                    cmd.absEndPt = new superpath.Point( p.x, p.y);
                     cmdList.push(cmd);
                 }
                 break;
                 case 'L':
                 case 'l':
                 do {
-                    cmd = {
-                    };
+                    cmd = {};
                     cmd.current = pp.current;
                     p = pp.getAsCurrentPoint(pp.isRelativeCommand());
                     cmd.command = pp.command;
                     cmd.target = p;
-                    cmd.endPt = {
-                    };
-                    cmd.endPt.x = p.x;
-                    cmd.endPt.y = p.y;
-                    cmd.absEndPt = {
-                    };
-                    cmd.absEndPt.x = p.x;
-                    cmd.absEndPt.y = p.y;
+                    cmd.endPt = new superpath.Point( p.x, p.y);
+                    cmd.absEndPt = new superpath.Point( p.x, p.y);
                     if (pp.isRelativeCommand(cmd.command)) {
                         if (existy(cmdList.cmd[cmdList.cmd.length -1].absEndPt)) {
                             cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length -1].absEndPt.x;
@@ -826,20 +769,16 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 case 'H':
                 case 'h':
                 do {
-                    cmd = {
-                    };
+                    cmd = {};
                     cmd.current = pp.current;
                     coord = pp.getScalar();
                     t = pp.isRelativeCommand();
-                    newP = new pp.Point((pp.isRelativeCommand() ? pp.current.x: 0) + coord, pp.current.y);
+                    newP = new superpath.Point((pp.isRelativeCommand() ? pp.current.x: 0) + coord, pp.current.y);
                     pp.current = newP;
                     cmd.command = pp.command;
                     cmd.d = (pp.isRelativeCommand() ? pp.current.x: 0) + coord;
                     cmd.endPt = newP;
-                    cmd.absEndPt = {
-                    };
-                    cmd.absEndPt.x = newP.x;
-                    cmd.absEndPt.y = newP.y;
+                    cmd.absEndPt = new superpath.Point( newP.x, newP.y);
                     if (pp.isRelativeCommand(cmd.command)) {
                         if (existy(cmdList.cmd[cmdList.cmd.length -1].absEndPt)) {
                             cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length -1].absEndPt.x;
@@ -857,7 +796,7 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                     };
                     cmd.current = pp.current;
                     coord = pp.getScalar();
-                    newP = new pp.Point(pp.current.x, (pp.isRelativeCommand() ? pp.current.y: 0) + coord);
+                    newP = new superpath.Point(pp.current.x, (pp.isRelativeCommand() ? pp.current.y: 0) + coord);
                     pp.current = newP;
                     cmd.command = pp.command;
                     cmd.d = (pp.isRelativeCommand() ? pp.current.x: 0) + coord;
@@ -956,18 +895,17 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
                 }
                 cmdList.push(cmd);
                 break;
-                case '!':
-                case '#':
-                cmd = {
-                };
+                case superpath.REVERSEDREF:
+                case superpath.DIRECTREF:
+                cmd = {};
                 cmd.command = pp.command;
                 cmd.ref = pp.getSubpathRefId()
                 cmdList.push(cmd);
                 break;
-                case 'T':
+                case 'T': // T2D2
                 case 't':
                 break;
-                case 'A':
+                case 'A': // T2D2
                 case 'a':
                 break;
                 case 'Z':
@@ -1015,6 +953,7 @@ je vais construire une table associative de chunks qui associe un nom de chunk Ã
         someChange = false,
         pathChange = false;
         len = pathlist.length;
+        // pathlist isn't a table but an html collection => no forEach method
         for (iPath = 0; len > iPath; iPath += 1) {
             path = pathlist[iPath];
             pathdata = path.getAttribute("d");
