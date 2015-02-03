@@ -24,9 +24,12 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
 Hypothesis:
+- all subpath reference uses a relative subpath definition of the geometry (all absolute coordinates are replaced by relative ones)
+- so, all chunk definition are transated to relative commands
 - after a ref, there is always an explicit command
 - a chunk definition can't contain a chunk definition or reference
-- all chunk definition are transated to relative commands
+- a chunk definition is always followed by an explicit command
+- a chunk definition begins always followed by an explicit command
 
 possible optimization:
 when a chunk definition contains only relative commands, we can skip code used to search a previous reference point
@@ -34,18 +37,7 @@ when a chunk definition contains only relative commands, we can skip code used t
 questions:
 Q1: what appends if a content try to define several chunks with the same id
 
-pour limiter la difficulté
-je pose que les subpath sont tous traités en relatif
-je pose qu'un subpath commence par une commande explicite
-pour l'instant, je pose qu'un path où est défini un subpath ne doit pas voir cette définition suivie par une référence à un subpath inversé (!)
-sinon cette définition ne sera pas utilisable en inversé!!!!
-je dois pouvoir traiter le reste (assez facilement?)
-
 possible useful parser: see http://pastie.org/1036541
-
-je vais mettre les définitions de chunk dans les path qui les définissent
-je vais construire une table associative de chunks qui associe un nom de chunk à un path qui le définit
-
  */
 (function () {
     "use strict";
@@ -197,8 +189,8 @@ je vais construire une table associative de chunks qui associe un nom de chunk �
             cmd = cmdList.cmd[cmdIndex];
             if ((cmd.command === superpath.OPENCHUNK) &&(existy(cmd.crtPt))) {
                 chunkName = cmd.chunkName;
-                chunk = superpath.chunks[chunkName] = {
-                };
+                chunk = superpath.chunks[chunkName] = {};
+                chunk.nam = chunkName;
                 // T2D2 here it's possible that cmd.crtPt isn't defined; must add processing of that case
                 chunk.description = buildCmdList(cmd.strDescription, cmd.crtPt);
                 // list of commands
@@ -206,7 +198,8 @@ je vais construire une table associative de chunks qui associe un nom de chunk �
                 chunk.path = path; // to know the path from which comes the chunk
                 chunk.data = strDescription(chunk.description);
                 chunk.rData = strDescription(chunk.reversedDescription);
-                // T2D2 process the replacement of the ( command
+                path.chunks.push(chunk); // to have a pointer from the path to the chunks defined in it
+                // T2D2 process the replacement of the ( command in the cmdList
                 path.newpathdata = newpathdata.replace(newpathdata.slice(newpathdata.indexOf(superpath.OPENCHUNK), newpathdata.indexOf(superpath.ENDCHUNK) + 1), chunk.data);
                 someChange = true;
             }
