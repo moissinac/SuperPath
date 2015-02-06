@@ -35,10 +35,149 @@ possible optimization:
 when a chunk definition contains only relative commands, we can skip code used to search a previous reference point
 
 questions:
-Q1: what appends if a content try to define several chunks with the same id
+Q1: what happens if a content try to define several chunks with the same id
 
 possible useful parser: see http://pastie.org/1036541
  */
+function PathParser(d, dircmd, revcmd, opencmd, closecmd) {
+    var commands = "MmZzLlHhVvCcSsQqTtAa" + opencmd + dircmd + revcmd + closecmd,
+        regex = new RegExp("([" + commands + "])([" + commands + "])", "gm");
+    // T2D2: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
+    this.compressSpaces = function (s) {
+        return s.replace(/[\s\r\t\n]+/gm, ' ');
+    };
+    this.trim = function (s) {
+        return s.replace(/^\s+|\s+$/g, '');
+    };
+    d = d.replace(/,/gm, ' ');
+    // get rid of all commas
+    // T2D2 undestand why the following line is repeted two times
+    d = d.replace(regex, '$1 $2');
+    // separate commands from commands
+    d = d.replace(regex, '$1 $2');
+    // separate commands from commands
+    regex = new RegExp("([" + commands + "])([^\s])", "gm");
+    d = d.replace(regex, '$1 $2');
+    // separate commands from points
+    regex = new RegExp("([^\s])([" + commands + "])", "gm");
+    d = d.replace(regex, '$1 $2');
+    // separate commands from points
+    d = d.replace(/([0-9])([+\-])/gm, '$1 $2');
+    // separate digits when no comma
+    d = d.replace(/(\.[0-9]*)(\.)/gm, '$1 $2');
+    // separate digits when no comma
+    d = d.replace(/([Aa](\s+[0-9]+){3})\s+ ([01])\s*([01])/gm, '$1 $3 $4 ');
+    // shorthand elliptical arc path syntax
+    d = this.compressSpaces(d);
+    // compress multiple spaces
+    d = this.trim(d);
+    regex = new RegExp("^[" + commands + "]$", "gm");
+    this.tokens = d.split(' ');
+    this.reset = function () {
+        this.i = -1;
+        this.command = '';
+        this.previousCommand = '';
+        this.start = new superpath.Point(0, 0);
+        this.control = new superpath.Point(0, 0);
+        this.current = new superpath.Point(0, 0);
+        this.points = [];
+        this.angles = [];
+    };
+    this.isEnd = function () {
+        return this.i >= this.tokens.length - 1;
+    };
+    this.isCommandOrEnd = function () {
+        if (this.isEnd()) {
+            return true;
+        }
+        return this.tokens[this.i + 1].match(regex) !== null;
+    };
+    this.isRelativeCommand = function () {
+        switch (this.command) {
+        case 'm':
+        case 'l':
+        case 'h':
+        case 'v':
+        case 'c':
+        case 's':
+        case 'q':
+        case 't':
+        case 'a':
+        case 'z':
+        // folowing lines are for superpath extension
+        case superpath.DIRECTREF:
+        case superpath.REVERSEDREF:
+        case superpath.OPENCHUNK:
+            return true;
+        }
+        return false;
+    };
+    this.getToken = function () {
+        this.i += 1;
+        return this.tokens[this.i];
+    };
+    this.getSubpathRefId = function () {
+        var id = "";
+        do {
+            id += this.getToken();
+        } while (id.indexOf("|") === -1);
+        // remove spaces coming from the initial code of the parser which segments the tokens
+        while (id.indexOf(" ") !== -1) {
+            id = id.replace(" ", "");
+        }
+        return id.slice(0, id.indexOf("|"));
+    };
+    this.getSubpathDesc = function () {
+        var str = this.getToken(),
+            toc = this.getToken();
+        while (toc !== superpath.ENDCHUNK) {
+            str += toc + " "; 
+            toc = this.getToken();
+        }
+        return str;
+    };
+    this.getScalar = function () {
+        return parseFloat(this.getToken());
+    };
+    this.nextCommand = function () {
+        this.previousCommand = this.command;
+        this.command = this.getToken();
+    };
+    this.getPoint = function (relative) {
+        // if relative is false, make the point absolute
+        var pl = new superpath.Point(this.getScalar(), this.getScalar());
+        return (relative ? pl : this.makeAbsolute(pl));
+    };
+    this.getAsControlPoint = function (relative) {
+        var pl = this.getPoint(relative);
+        this.control = pl;
+        return pl;
+    };
+    this.getAsCurrentPoint = function (relative) {
+        var pl = this.getPoint(relative);
+        this.current = pl;
+        return pl;
+    };
+    this.getReflectedControlPoint = function () {
+        if (this.previousCommand.toLowerCase() !== 'c' &&
+                this.previousCommand.toLowerCase() !== 's' &&
+                this.previousCommand.toLowerCase() !== 'q' &&
+                this.previousCommand.toLowerCase() !== 't') {
+            return this.current;
+        }
+        // reflect point
+        var pl = new superpath.Point(2 * this.current.x - this.control.x, 2 * this.current.y - this.control.y);
+        return pl;
+    };
+    this.makeAbsolute = function (p) {
+        if (this.isRelativeCommand()) {
+            p.x += this.current.x;
+            p.y += this.current.y;
+        }
+        return p;
+    };
+}
+
 (function () {
     "use strict";
     var superpath = {
@@ -206,7 +345,7 @@ possible useful parser: see http://pastie.org/1036541
         var cmd = { };
         cmd.command = letter;
         return cmd;
-    }
+    };
     // cmdList is obtained by calling  svg_parse_path on a path data    
     superpath.fullrelativePathCmdList = function (cmdList) {
         // transform the path data to use only relative commands
@@ -229,7 +368,7 @@ possible useful parser: see http://pastie.org/1036541
             switch (crtcmdcode) {
             case 'v':
             case 'V':
-                var cmd = new Command('v');
+                cmd = new Command('v');
                 pt = new superpath.Point(revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d);
                 cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 if (crtcmdcode === 'V') {
@@ -240,7 +379,7 @@ possible useful parser: see http://pastie.org/1036541
                 break;
             case 'h':
             case 'H':
-                var cmd = new Command('h');
+                cmd = new Command('h');
                 pt = new superpath.Point(cmdList.cmd[icmd].d, revCmdList.cmd[icmd - 1].crtPt.y); 
                 cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 if (crtcmdcode === 'H') {
@@ -251,7 +390,7 @@ possible useful parser: see http://pastie.org/1036541
                 break;
             case 'm': // T2D2 check for relative move
             case 'M':
-                var cmd = new Command('M'); // m?
+                cmd = new Command('M'); // m?
                 pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
                 cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 cmd.target = pt;
@@ -259,7 +398,7 @@ possible useful parser: see http://pastie.org/1036541
                 break;
             case 'L':
             case 'l':
-                var cmd = new Command('l');
+                cmd = new Command('l');
                 pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
                 cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 if (crtcmdcode === 'L') {
@@ -271,7 +410,7 @@ possible useful parser: see http://pastie.org/1036541
                 break;
             case 'q':
             case 'Q':
-                var cmd = new Command('q');
+                cmd = new Command('q');
                 pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
                 cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
@@ -287,7 +426,7 @@ possible useful parser: see http://pastie.org/1036541
                 break;
             case 'c':
             case 'C':
-                var cmd = new Command('c');
+                cmd = new Command('c');
                 pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
                 cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
@@ -306,15 +445,13 @@ possible useful parser: see http://pastie.org/1036541
                 revCmdList.cmd.push(cmd);
                 break;
             case superpath.OPENCHUNK:
-                cmd = { };
-                cmd.command = superpath.OPENCHUNK;
+                cmd = new Command(superpath.OPENCHUNK);
                 cmd.chunkName = cmdList.cmd[icmd].chunkName;
                 cmd.strDescription = cmdList.cmd[icmd].strDescription;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'z': //
-                cmd = { };
-                cmd.command = 'z';
+                cmd = new Command('z');
                 revCmdList.cmd.push(cmd);
                 break;
             }
@@ -525,144 +662,7 @@ possible useful parser: see http://pastie.org/1036541
             descriptionsubpath,
             commands,
             regex;
-        this.compressSpaces = function (s) {
-            return s.replace(/[\s\r\t\n]+/gm, ' ');
-        };
-        this.trim = function (s) {
-            return s.replace(/^\s+|\s+$/g, '');
-        };
-        // T2D2: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
-        d = d.replace(/,/gm, ' ');
-        // get rid of all commas
-        // T2D2 undestand why the following line is repeted two times
-        commands = "MmZzLlHhVvCcSsQqTtAa" + superpath.OPENCHUNK + superpath.DIRECTREF + superpath.REVERSEDREF + superpath.ENDCHUNK;
-        regex = new RegExp("([" + commands + "])([" + commands + "])", "gm");
-        d = d.replace(regex, '$1 $2');
-        // separate commands from commands
-        d = d.replace(regex, '$1 $2');
-        // separate commands from commands
-        regex = new RegExp("([" + commands + "])([^\s])", "gm");
-        d = d.replace(regex, '$1 $2');
-        // separate commands from points
-        regex = new RegExp("([^\s])([" + commands + "])", "gm");
-        d = d.replace(regex, '$1 $2');
-        // separate commands from points
-        d = d.replace(/([0-9])([+\-])/gm, '$1 $2');
-        // separate digits when no comma
-        d = d.replace(/(\.[0-9]*)(\.)/gm, '$1 $2');
-        // separate digits when no comma
-        d = d.replace(/([Aa](\s+[0-9]+){3})\s+ ([01])\s*([01])/gm, '$1 $3 $4 ');
-        // shorthand elliptical arc path syntax
-        d = this.compressSpaces(d);
-        // compress multiple spaces
-        d = this.trim(d);
-        this.PathParser = new (function (d) {
-            this.tokens = d.split(' ');
-            this.reset = function () {
-                this.i = -1;
-                this.command = '';
-                this.previousCommand = '';
-                this.start = new superpath.Point(0, 0);
-                this.control = new superpath.Point(0, 0);
-                this.current = new superpath.Point(0, 0);
-                this.points = [];
-                this.angles = [];
-            };
-            this.isEnd = function () {
-                return this.i >= this.tokens.length - 1;
-            };
-            this.isCommandOrEnd = function () {
-                if (this.isEnd()) {
-                    return true;
-                }
-                return this.tokens[this.i + 1].match(/^[A-Za-z(#!]$/) !== null;
-            };
-            this.isRelativeCommand = function () {
-                switch (this.command) {
-                case 'm':
-                case 'l':
-                case 'h':
-                case 'v':
-                case 'c':
-                case 's':
-                case 'q':
-                case 't':
-                case 'a':
-                case 'z':
-                // folowing lines are for superpath extension
-                case superpath.DIRECTREF:
-                case superpath.REVERSEDREF:
-                case superpath.OPENCHUNK:
-                    return true;
-                }
-                return false;
-            };
-            this.getToken = function () {
-                this.i += 1;
-                return this.tokens[this.i];
-            };
-            this.getSubpathRefId = function () {
-                var id = "";
-                do {
-                    id += this.getToken();
-                } while (id.indexOf("|") === -1);
-                // remove spaces coming from the initial code of the parser which segments the tokens
-                while (id.indexOf(" ") !== -1) {
-                    id = id.replace(" ", "");
-                }
-                return id.slice(0, id.indexOf("|"));
-            };
-            this.getSubpathDesc = function () {
-                var str = this.getToken(),
-                    toc = this.getToken();
-                while (toc !== superpath.ENDCHUNK) {
-                    str += toc + " "; 
-                    toc = this.getToken();
-                }
-                return str;
-            };
-            this.getScalar = function () {
-                return parseFloat(this.getToken());
-            };
-            this.nextCommand = function () {
-                this.previousCommand = this.command;
-                this.command = this.getToken();
-            };
-            this.getPoint = function (relative) {
-                // if relative is false, make the point absolute
-                var pl = new superpath.Point(this.getScalar(), this.getScalar());
-                return (relative ? pl : this.makeAbsolute(pl));
-            };
-            this.getAsControlPoint = function (relative) {
-                var pl = this.getPoint(relative);
-                this.control = pl;
-                return pl;
-            };
-            this.getAsCurrentPoint = function (relative) {
-                var pl = this.getPoint(relative);
-                this.current = pl;
-                return pl;
-            };
-            this.getReflectedControlPoint = function () {
-                if (this.previousCommand.toLowerCase() !== 'c' &&
-                        this.previousCommand.toLowerCase() !== 's' &&
-                        this.previousCommand.toLowerCase() !== 'q' &&
-                        this.previousCommand.toLowerCase() !== 't') {
-                    return this.current;
-                }
-                // reflect point
-                var pl = new superpath.Point(2 * this.current.x - this.control.x, 2 * this.current.y - this.control.y);
-                return pl;
-            };
-            this.makeAbsolute = function (p) {
-                if (this.isRelativeCommand()) {
-                    p.x += this.current.x;
-                    p.y += this.current.y;
-                }
-                return p;
-            };
-        })(d);
-        pp = this.PathParser;
+        pp = this.PathParser = new PathParser(d, superpath.DIRECTREF, superpath.REVERSEDREF, superpath.OPENCHUNK, superpath.ENDCHUNK); 
         pp.reset();
         while (!pp.isEnd()) {
             pp.nextCommand();
@@ -709,7 +709,7 @@ possible useful parser: see http://pastie.org/1036541
             case 'H':
             case 'h':
                 do {
-                    cmd = {};
+                    cmd = { };
                     cmd.current = pp.current;
                     coord = pp.getScalar();
                     t = pp.isRelativeCommand();
@@ -732,8 +732,7 @@ possible useful parser: see http://pastie.org/1036541
             case 'V':
             case 'v':
                 do {
-                    cmd = {
-                    };
+                    cmd = { };
                     cmd.current = pp.current;
                     coord = pp.getScalar();
                     newP = new superpath.Point(pp.current.x, (pp.isRelativeCommand() ? pp.current.y : 0) + coord);
@@ -741,8 +740,7 @@ possible useful parser: see http://pastie.org/1036541
                     cmd.command = pp.command;
                     cmd.d = (pp.isRelativeCommand() ? pp.current.x : 0) + coord;
                     cmd.endPt = newP;
-                    cmd.absEndPt = {
-                    };
+                    cmd.absEndPt = { };
                     cmd.absEndPt.x = newP.x;
                     cmd.absEndPt.y = newP.y;
                     if (pp.isRelativeCommand(cmd.command)) {
@@ -758,8 +756,7 @@ possible useful parser: see http://pastie.org/1036541
             case 'C':
             case 'c':
                 do {
-                    cmd = {
-                    };
+                    cmd = { };
                     cmd.current = pp.current;
                     cntrl1 = pp.getAsControlPoint(pp.isRelativeCommand());
                     cntrl2 = pp.getAsControlPoint(pp.isRelativeCommand());
@@ -799,8 +796,7 @@ possible useful parser: see http://pastie.org/1036541
             case 'Q':
             case 'q':
                 do {
-                    cmd = {
-                    };
+                    cmd = { };
                     cmd.current = pp.current;
                     cntrl = pp.getAsControlPoint(pp.isRelativeCommand());
                     cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
@@ -808,8 +804,7 @@ possible useful parser: see http://pastie.org/1036541
                     cmd.ctlpt1 = cntrl;
                     cmd.target = cp;
                     cmd.endPt = cp;
-                    cmd.absEndPt = {
-                    };
+                    cmd.absEndPt = { };
                     cmd.absEndPt.x = cp.x;
                     cmd.absEndPt.y = cp.y;
                     if (pp.isRelativeCommand(cmd.command)) {
