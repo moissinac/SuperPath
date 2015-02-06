@@ -202,7 +202,12 @@ possible useful parser: see http://pastie.org/1036541
         } while (cmdList.cmd.length > cmdIndex);
         return someChange;
     }
-    // cmdList is obtained by calling  svg_parse_path on a path data
+    var Command = function(letter) {
+        var cmd = { };
+        cmd.command = letter;
+        return cmd;
+    }
+    // cmdList is obtained by calling  svg_parse_path on a path data    
     superpath.fullrelativePathCmdList = function (cmdList) {
         // transform the path data to use only relative commands
         var revCmdList = new superpath.CmdList(),
@@ -224,15 +229,9 @@ possible useful parser: see http://pastie.org/1036541
             switch (crtcmdcode) {
             case 'v':
             case 'V':
-                cmd = {
-                };
-                cmd.command = 'v';
-                cmd.crtPt = {
-                };
-                pt = {
-                };
-                cmd.crtPt.x = pt.x = revCmdList.cmd[icmd - 1].crtPt.x;
-                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].d;
+                var cmd = new Command('v');
+                pt = new superpath.Point(revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d);
+                cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 if (crtcmdcode === 'V') {
                     pt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                 }
@@ -241,15 +240,9 @@ possible useful parser: see http://pastie.org/1036541
                 break;
             case 'h':
             case 'H':
-                cmd = {
-                };
-                cmd.command = 'h';
-                cmd.crtPt = {
-                };
-                pt = {
-                };
-                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].d;
-                cmd.crtPt.y = pt.y = revCmdList.cmd[icmd - 1].crtPt.y;
+                var cmd = new Command('h');
+                pt = new superpath.Point(cmdList.cmd[icmd].d, revCmdList.cmd[icmd - 1].crtPt.y); 
+                cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 if (crtcmdcode === 'H') {
                     pt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
                 }
@@ -258,29 +251,17 @@ possible useful parser: see http://pastie.org/1036541
                 break;
             case 'm': // T2D2 check for relative move
             case 'M':
-                cmd = {
-                };
-                cmd.crtPt = {
-                };
-                pt = {
-                };
-                cmd.command = 'M';
-                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].target.x;
-                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].target.y;
+                var cmd = new Command('M'); // m?
+                pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
+                cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 cmd.target = pt;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'L':
             case 'l':
-                cmd = {
-                };
-                cmd.command = 'l';
-                cmd.crtPt = {
-                };
-                pt = {
-                };
-                cmd.crtPt.x = pt.x = cmdList.cmd[icmd].target.x;
-                cmd.crtPt.y = pt.y = cmdList.cmd[icmd].target.y;
+                var cmd = new Command('l');
+                pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
+                cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 if (crtcmdcode === 'L') {
                     pt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
                     pt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
@@ -290,21 +271,10 @@ possible useful parser: see http://pastie.org/1036541
                 break;
             case 'q':
             case 'Q':
-                cmd = {
-                };
-                cmd.crtPt = {
-                };
-                endpt = {
-                };
-                ctlpt1 = {
-                };
-                ctlpt2 = {
-                };
-                cmd.command = 'q';
-                ctlpt1.x = cmdList.cmd[icmd].ctlpt1.x;
-                ctlpt1.y = cmdList.cmd[icmd].ctlpt1.y;
-                cmd.crtPt.x = endpt.x = cmdList.cmd[icmd].target.x;
-                cmd.crtPt.y = endpt.y = cmdList.cmd[icmd].target.y;
+                var cmd = new Command('q');
+                pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
+                cmd.crtPt = new superpath.Point(pt.x, pt.y);
+                ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
                 if (crtcmdcode === 'Q') {
                     ctlpt1.x -= revCmdList.cmd[icmd - 1].crtPt.x;
                     ctlpt1.y -= revCmdList.cmd[icmd - 1].crtPt.y;
@@ -312,34 +282,27 @@ possible useful parser: see http://pastie.org/1036541
                     endpt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                 }
                 cmd.ctlpt1 = ctlpt1;
-                cmd.target = endpt;
+                cmd.target = pt;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'c':
             case 'C':
-                cmd = { };
-                cmd.crtPt = { };
-                endpt = { };
-                ctlpt1 = { };
-                ctlpt2 = { };
-                cmd.command = 'c';
-                ctlpt1.x = cmdList.cmd[icmd].ctlpt1.x;
-                ctlpt1.y = cmdList.cmd[icmd].ctlpt1.y;
-                ctlpt2.x = cmdList.cmd[icmd].ctlpt2.x;
-                ctlpt2.y = cmdList.cmd[icmd].ctlpt2.y;
-                cmd.crtPt.x = endpt.x = cmdList.cmd[icmd].target.x;
-                cmd.crtPt.y = endpt.y = cmdList.cmd[icmd].target.y;
+                var cmd = new Command('c');
+                pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
+                cmd.crtPt = new superpath.Point(pt.x, pt.y);
+                ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+                ctlpt2 = new superpath.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
                 if (crtcmdcode === 'C') {
                     ctlpt1.x -= revCmdList.cmd[icmd - 1].crtPt.x;
                     ctlpt1.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                     ctlpt2.x -= revCmdList.cmd[icmd - 1].crtPt.x;
                     ctlpt2.y -= revCmdList.cmd[icmd - 1].crtPt.y;
-                    endpt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
-                    endpt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                    pt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
+                    pt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                 }
                 cmd.ctlpt1 = ctlpt1;
                 cmd.ctlpt2 = ctlpt2;
-                cmd.target = endpt;
+                cmd.target = pt;
                 revCmdList.cmd.push(cmd);
                 break;
             case superpath.OPENCHUNK:
@@ -981,7 +944,7 @@ possible useful parser: see http://pastie.org/1036541
                     someChange = true;
                 }
                 iPath += 1;
-            };
+            }
             // expand reversed chunks
             iPath = 0;
             while (pathIRefList.length > iPath) {
