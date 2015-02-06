@@ -111,12 +111,6 @@ QUnit.test( "Test finding current starting point for a subpath definition with a
     var pt = cmdList.getSubpathStartingPoint("p1");
     assert.deepEqual( pt.x + " " + pt.y , "330 150"  , "Passed!");
 });
-QUnit.test( "Test finding current starting point for a subpath definition with a relative path, without absolute positions preprocessing", function( assert ) {
-    var data = "M90,190l130,-100 110,60 (p1|l-50,80l50,80 -50,90)l-160,-25 z";
-    var cmdList = superpath.svg_parse_path(data);
-    var pt = cmdList.getSubpathStartingPoint("p1");
-    assert.deepEqual( pt.x + " " + pt.y , "330 150"  , "Passed!");
-});
 QUnit.test( "Test finding current starting point for a subpath definition with a mixed path, without absolute positions preprocessing", function( assert ) {
     var data = "M90,190l130,-100 110,60 (p1|L280,230 L330,310 280,400)l-160,-25 z";
     var cmdList = superpath.svg_parse_path(data);
