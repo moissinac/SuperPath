@@ -875,7 +875,7 @@ possible useful parser: see http://pastie.org/1036541
             case superpath.DIRECTREF:
                 cmd = {};
                 cmd.command = pp.command;
-                cmd.ref = pp.getSubpathRefId()
+                cmd.ref = pp.getSubpathRefId();
                 cmdList.push(cmd);
                 break;
             case 'T': // T2D2
