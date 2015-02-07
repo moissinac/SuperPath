@@ -155,8 +155,7 @@ possible useful parser: see http://pastie.org/1036541
         };
         this.makeAbsolute = function (p) {
             if (this.isRelativeCommand()) {
-                p.x += this.current.x;
-                p.y += this.current.y;
+                p.translate(this.current.x, this.current.y);
             }
             return p;
         };
@@ -386,8 +385,7 @@ possible useful parser: see http://pastie.org/1036541
                 pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
                 cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 if (crtcmdcode === 'L') {
-                    pt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
-                    pt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                    pt.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                 }
                 cmd.target = pt;
                 revCmdList.cmd.push(cmd);
@@ -399,10 +397,8 @@ possible useful parser: see http://pastie.org/1036541
                 cmd.crtPt = new superpath.Point(pt.x, pt.y);
                 ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
                 if (crtcmdcode === 'Q') {
-                    ctlpt1.x -= revCmdList.cmd[icmd - 1].crtPt.x;
-                    ctlpt1.y -= revCmdList.cmd[icmd - 1].crtPt.y;
-                    endpt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
-                    endpt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                    ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    endpt.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                 }
                 cmd.ctlpt1 = ctlpt1;
                 cmd.target = pt;
@@ -416,12 +412,9 @@ possible useful parser: see http://pastie.org/1036541
                 ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
                 ctlpt2 = new superpath.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
                 if (crtcmdcode === 'C') {
-                    ctlpt1.x -= revCmdList.cmd[icmd - 1].crtPt.x;
-                    ctlpt1.y -= revCmdList.cmd[icmd - 1].crtPt.y;
-                    ctlpt2.x -= revCmdList.cmd[icmd - 1].crtPt.x;
-                    ctlpt2.y -= revCmdList.cmd[icmd - 1].crtPt.y;
-                    pt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
-                    pt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                    ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    ctlpt2.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    pt.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                 }
                 cmd.ctlpt1 = ctlpt1;
                 cmd.ctlpt2 = ctlpt2;
@@ -446,6 +439,10 @@ possible useful parser: see http://pastie.org/1036541
     superpath.Point = function (x, y) {
         this.x = x;
         this.y = y;
+        this.translate = function(dx, dy) {
+            this.x += dx;
+            this.y += dy;
+        }
     };
     superpath.CmdList = function () {
         this.cmd = [];
@@ -601,8 +598,7 @@ possible useful parser: see http://pastie.org/1036541
                     cmd.absEndPt = new superpath.Point(p.x, p.y);
                     if (pp.isRelativeCommand(cmd.command)) {
                         if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
-                            cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x;
-                            cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y;
+                            cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x, cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y);
                         }
                     }
                     cmdList.push(cmd);
@@ -623,8 +619,7 @@ possible useful parser: see http://pastie.org/1036541
                     cmd.absEndPt = new superpath.Point(newP.x, newP.y);
                     if (pp.isRelativeCommand(cmd.command)) {
                         if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
-                            cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x;
-                            cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y;
+                            cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x, cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y);
                         }
                     }
                     cmdList.push(cmd);
@@ -642,13 +637,10 @@ possible useful parser: see http://pastie.org/1036541
                     cmd.command = pp.command;
                     cmd.d = (pp.isRelativeCommand() ? pp.current.x : 0) + coord;
                     cmd.endPt = newP;
-                    cmd.absEndPt = { };
-                    cmd.absEndPt.x = newP.x;
-                    cmd.absEndPt.y = newP.y;
+                    cmd.absEndPt =  new superpath.Point(newP.x, newP.y);
                     if (pp.isRelativeCommand(cmd.command)) {
                         if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
-                            cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length -1].absEndPt.x;
-                            cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length -1].absEndPt.y;
+                            cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length -1].absEndPt.x, cmdList.cmd[cmdList.cmd.length -1].absEndPt.y);
                         }
                     }
                     cmdList.push(cmd);
@@ -668,14 +660,10 @@ possible useful parser: see http://pastie.org/1036541
                     cmd.ctlpt2 = cntrl2;
                     cmd.target = cp;
                     cmd.endPt = cp;
-                    cmd.absEndPt = {
-                    };
-                    cmd.absEndPt.x = cp.x;
-                    cmd.absEndPt.y = cp.y;
+                    cmd.absEndPt =  new superpath.Point(cp.x, cp.y);
                     if (pp.isRelativeCommand(cmd.command)) {
                         if (existy(cmdList.cmd[cmdList.cmd.length -1].absEndPt)) {
-                            cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length -1].absEndPt.x;
-                            cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length -1].absEndPt.y;
+                            cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length -1].absEndPt.x, cmdList.cmd[cmdList.cmd.length -1].absEndPt.y);
                         }
                     }
                     cmdList.push(cmd);
@@ -706,13 +694,10 @@ possible useful parser: see http://pastie.org/1036541
                     cmd.ctlpt1 = cntrl;
                     cmd.target = cp;
                     cmd.endPt = cp;
-                    cmd.absEndPt = { };
-                    cmd.absEndPt.x = cp.x;
-                    cmd.absEndPt.y = cp.y;
+                    cmd.absEndPt =  new superpath.Point(cp.x, cp.y);
                     if (pp.isRelativeCommand(cmd.command)) {
                         if (existy(cmdList.cmd[cmdList.cmd.length -1].absEndPt)) {
-                            cmd.absEndPt.x += cmdList.cmd[cmdList.cmd.length -1].absEndPt.x;
-                            cmd.absEndPt.y += cmdList.cmd[cmdList.cmd.length -1].absEndPt.y;
+                            cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length -1].absEndPt.x, cmdList.cmd[cmdList.cmd.length -1].absEndPt.y);
                         }
                     }
                     cmdList.push(cmd);
