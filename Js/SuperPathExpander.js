@@ -351,9 +351,9 @@ possible useful parser: see http://pastie.org/1036541
                 if (existy(this.ctlpt2)) { str += this.ctlpt2.x + "," + this.ctlpt2.y + " "; }
                 if (existy(this.target)) { str += this.target.x + "," + this.target.y; }
                 break;
-            };
+            }
             return str;        
-        }
+        };
         return cmd;
     };
     // cmdList is obtained by calling  svg_parse_path on a path data    
