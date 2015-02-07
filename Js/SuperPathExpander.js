@@ -351,7 +351,7 @@ possible useful parser: see http://pastie.org/1036541
                 if (existy(this.ctlpt2)) { str += this.ctlpt2.x + "," + this.ctlpt2.y + " "; }
                 if (existy(this.target)) { str += this.target.x + "," + this.target.y; }
                 break;
-            }
+            };
             return str;        
         }
         return cmd;
@@ -469,7 +469,7 @@ possible useful parser: see http://pastie.org/1036541
         this.translate = function(dx, dy) {
             this.x += dx;
             this.y += dy;
-        }
+        };
     };
     superpath.CmdList = function () {
         this.cmd = [];
