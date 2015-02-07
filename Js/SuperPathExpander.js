@@ -356,6 +356,13 @@ possible useful parser: see http://pastie.org/1036541
         };
         return cmd;
     };
+    function createsimplecommand(crtcmdcode, x, y) {
+        var cmd = new Command(crtcmdcode), // m? or M
+            pt = new superpath.Point(x, y); 
+        cmd.crtPt = new superpath.Point(pt.x, pt.y);
+        cmd.target = pt;
+        return cmd;
+    }
     // cmdList is obtained by calling  svg_parse_path on a path data    
     superpath.fullrelativePathCmdList = function (cmdList) {
         // transform the path data to use only relative commands
@@ -368,84 +375,69 @@ possible useful parser: see http://pastie.org/1036541
             crtcmdcode,
             icmd = 0,
             len = cmdList.cmd.length,
-            pt;
+            pt,
+            x, y;
         crtPt.x = cmdList.cmd[0].target.x;
         crtPt.y = cmdList.cmd[0].target.y;
         while (len > icmd) {
             // pour chaque commande passer en relatif et calculer le nouveau point courant
-            console.log(cmdList.cmd[icmd].command);
             crtcmdcode = cmdList.cmd[icmd].command;
             switch (crtcmdcode) {
             case 'v':
             case 'V':
-                cmd = new Command('v');
-                pt = new superpath.Point(revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d);
-                cmd.crtPt = new superpath.Point(pt.x, pt.y);
+                cmd = createsimplecommand(crtcmdcode, revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d);
                 if (crtcmdcode === 'V') {
-                    pt.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                    cmd.command = 'v';
+                    cmd.target.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                 }
-                cmd.d = pt.y;
+                cmd.d = cmd.target.y;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'h':
             case 'H':
-                cmd = new Command('h');
-                pt = new superpath.Point(cmdList.cmd[icmd].d, revCmdList.cmd[icmd - 1].crtPt.y); 
-                cmd.crtPt = new superpath.Point(pt.x, pt.y);
+                cmd = createsimplecommand(crtcmdcode, cmdList.cmd[icmd].d, revCmdList.cmd[icmd - 1].crtPt.y);
                 if (crtcmdcode === 'H') {
-                    pt.x -= revCmdList.cmd[icmd - 1].crtPt.x;
+                    cmd.command = 'h';
+                    cmd.target.x -= revCmdList.cmd[icmd - 1].crtPt.x;
                 }
-                cmd.d = pt.x;
+                cmd.d = cmd.target.x;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'm': // T2D2 check for relative move
             case 'M':
-                cmd = new Command('M'); // m?
-                pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
-                cmd.crtPt = new superpath.Point(pt.x, pt.y);
-                cmd.target = pt;
-                revCmdList.cmd.push(cmd);
+                revCmdList.cmd.push(createsimplecommand(crtcmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y));
                 break;
             case 'L':
             case 'l':
-                cmd = new Command('l');
-                pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
-                cmd.crtPt = new superpath.Point(pt.x, pt.y);
+                cmd = createsimplecommand(crtcmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
                 if (crtcmdcode === 'L') {
-                    pt.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.command = 'l';
+                    cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                 }
-                cmd.target = pt;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'q':
             case 'Q':
-                cmd = new Command('q');
-                pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
-                cmd.crtPt = new superpath.Point(pt.x, pt.y);
-                ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+                cmd = createsimplecommand(crtcmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
                 if (crtcmdcode === 'Q') {
-                    ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                    endpt.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.command = 'q';
+                    cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                 }
-                cmd.ctlpt1 = ctlpt1;
-                cmd.target = pt;
                 revCmdList.cmd.push(cmd);
                 break;
             case 'c':
             case 'C':
-                cmd = new Command('c');
-                pt = new superpath.Point(cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y); 
-                cmd.crtPt = new superpath.Point(pt.x, pt.y);
-                ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                ctlpt2 = new superpath.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
+                cmd = createsimplecommand(crtcmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+                cmd.ctlpt2 = new superpath.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
                 if (crtcmdcode === 'C') {
-                    ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                    ctlpt2.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                    pt.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.command = 'c';
+                    cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.ctlpt2.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                 }
-                cmd.ctlpt1 = ctlpt1;
-                cmd.ctlpt2 = ctlpt2;
-                cmd.target = pt;
                 revCmdList.cmd.push(cmd);
                 break;
             case superpath.OPENCHUNK:
@@ -737,6 +729,50 @@ possible useful parser: see http://pastie.org/1036541
         }
         return cmdList;
     };
+    function buildTablesOfPathUsingChunk(pathlist, pathDefinerList, pathDRefList, pathIRefList) {
+        var iPath,
+            path,
+            pathdata,
+            len = pathlist.length;
+        // pathlist isn't a table but an html collection => no forEach method
+        for (iPath = 0; len > iPath; iPath += 1) {
+            path = pathlist[iPath];
+            pathdata = path.getAttribute("d");
+            // build list of path containing a chunk definition
+            path.srcData = pathdata;
+            if (pathdata.indexOf(superpath.OPENCHUNK) !== -1) {
+                pathDefinerList.push(path);
+            }
+            // build list of path containing a chunk direct reference
+            if (pathdata.indexOf(superpath.DIRECTREF) !== -1) {
+                pathDRefList.push(path);
+            }
+            // build list of path containing a chunk inverse reference
+            if (pathdata.indexOf(superpath.REVERSEDREF) !== -1) {
+                pathIRefList.push(path);
+            }
+        }
+    }
+    function loopOnChunks(pathList, appliedFct, cmdchar) {
+        var iPath = 0,
+            path,
+            someChange = false,
+            pathChange = false;
+        while (pathList.length > iPath) {
+            path = pathList[iPath];
+            pathChange = appliedFct(path);
+            // find and define chunks
+            if (pathChange) {
+                path.setAttribute("d", path.newpathdata);
+                if (path.newpathdata.indexOf(cmdchar) === -1) {
+                    pathList.splice(iPath, 1);
+                }
+                someChange = true;
+            }
+            iPath += 1;
+        }
+        return someChange;
+    }
     /*
     Algo:
     1) build a table D of path with (
@@ -765,77 +801,19 @@ possible useful parser: see http://pastie.org/1036541
             pathIRefList = [],
             someChange = false,
             pathChange = false;
-        len = pathlist.length;
-        // pathlist isn't a table but an html collection => no forEach method
-        for (iPath = 0; len > iPath; iPath += 1) {
-            path = pathlist[iPath];
-            pathdata = path.getAttribute("d");
-            // build list of path containing a chunk definition
-            if (pathdata.indexOf(superpath.OPENCHUNK) !== -1) {
-                path.srcData = pathdata;
-                pathDefinerList.push(path);
-            }
-            // build list of path containing a chunk direct reference
-            if (pathdata.indexOf(superpath.DIRECTREF) !== -1) {
-                path.srcData = pathdata;
-                pathDRefList.push(path);
-            }
-            // build list of path containing a chunk inverse reference
-            if (pathdata.indexOf(superpath.REVERSEDREF) !== -1) {
-                path.srcData = pathdata;
-                pathIRefList.push(path);
-            }
-        }
+        buildTablesOfPathUsingChunk(pathlist, pathDefinerList, pathDRefList, pathIRefList);
         do {
             // try to process the chunk definitions and resolve the references until nothing appends
             someChange = false;
             // build chunk dictionnary
-            iPath = 0;
-            while (pathDefinerList.length > iPath) {
-                path = pathDefinerList[iPath];
-                pathChange = findChunks(path);
-                // find and define chunks
-                if (pathChange) {
-                    path.setAttribute("d", path.newpathdata);
-                    if (path.newpathdata.indexOf(superpath.OPENCHUNK) === -1) {
-                        // remove the path from the list of definers if completely solved
-                        pathDefinerList.splice(iPath, 1);
-                    }
-                    someChange = true;
-                }
-                iPath += 1;
-            }
+            // remove the path from the list of definers if completely solved
+            someChange |= loopOnChunks(pathDefinerList, findChunks, superpath.OPENCHUNK);
             // expand direct chunks references
-            iPath = 0;
-            while (pathDRefList.length > iPath) {
-                path = pathDRefList[iPath];
-                pathChange = expandChunks(path);
-                if (pathChange) {
-                    path.setAttribute("d", path.newpathdata);
-                    // remove the path from the list of direct reference if completely solved
-                    if (path.newpathdata.indexOf(superpath.DIRECTREF) === -1) {
-                        pathDRefList.splice(iPath, 1);
-                    }
-                    someChange = true;
-                }
-                iPath += 1;
-            }
+            // remove each path from the list of direct reference if completely solved
+            someChange |= loopOnChunks(pathDRefList, expandChunks, superpath.DIRECTREF);
             // expand reversed chunks
-            iPath = 0;
-            while (pathIRefList.length > iPath) {
-                path = pathIRefList[iPath];
-                pathChange = expandReversedChunks(path);
-                if (pathChange) {
-                    path.setAttribute("d", path.newpathdata);
-                    // remove the path from the list of reversed reference if completely solved
-                    if (path.newpathdata.indexOf(superpath.REVERSEDREF) === -1) {
-                        pathIRefList.splice(iPath, 1);
-                    }
-                    someChange = true;
-                } else {
-                }
-                iPath += 1;
-            }
+            // remove the path from the list of reversed reference if completely solved
+            someChange |= loopOnChunks(pathIRefList, expandReversedChunks, superpath.REVERSEDREF);
         }
         while (someChange);
         if ((pathDefinerList.length !== 0) ||(pathDRefList.length !== 0) ||(pathIRefList.length !== 0)) {
