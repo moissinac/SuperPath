@@ -327,6 +327,33 @@ possible useful parser: see http://pastie.org/1036541
     var Command = function(letter) {
         var cmd = { };
         cmd.command = letter;
+        cmd.toString = function() {
+            var str = "";
+            str += this.command;
+            switch (this.command) {
+            case superpath.OPENCHUNK:
+                str += this.chunkName + superpath.SEPARATOR + this.strDescription + superpath.ENDCHUNK;
+                break;
+            case superpath.DIRECTREF:
+            case superpath.REVERSEDREF:
+                str += this.ref + superpath.SEPARATOR;
+                break;
+            case "h":
+            case "v":
+            case "H":
+            case "V":
+                str += this.d;
+                break;
+            case "z": 
+                break;
+            default:
+                if (existy(this.ctlpt1)) { str += this.ctlpt1.x + "," + this.ctlpt1.y + " "; }
+                if (existy(this.ctlpt2)) { str += this.ctlpt2.x + "," + this.ctlpt2.y + " "; }
+                if (existy(this.target)) { str += this.target.x + "," + this.target.y; }
+                break;
+            }
+            return str;        
+        }
         return cmd;
     };
     // cmdList is obtained by calling  svg_parse_path on a path data    
@@ -469,8 +496,7 @@ possible useful parser: see http://pastie.org/1036541
                 pt,
                 target;
             for (i = this.cmd.length - 1; i >= 0; i -= 1) {
-                cmd = { };
-                cmd.command = this.cmd[i].command;
+                cmd = new Command(this.cmd[i].command);
                 switch (cmd.command) {
                 case 'M':
                     pt = new superpath.Point(-1 * this.cmd[i].target.x, -1 * this.cmd[i].target.y);
@@ -509,30 +535,7 @@ possible useful parser: see http://pastie.org/1036541
                 str = "",
                 cmd;
             while (this.cmd.length > i) {
-                cmd = this.cmd[i];
-                str += cmd.command;
-                switch (cmd.command) {
-                case superpath.OPENCHUNK:
-                    str += cmd.chunkName + superpath.SEPARATOR + cmd.strDescription + superpath.ENDCHUNK;
-                    break;
-                case superpath.DIRECTREF:
-                case superpath.REVERSEDREF:
-                    str += cmd.ref + superpath.SEPARATOR;
-                    break;
-                case "h":
-                case "v":
-                case "H":
-                case "V":
-                    str += cmd.d;
-                    break;
-                case "z": 
-                    break;
-                default:
-                    if (existy(cmd.ctlpt1)) { str += cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " "; }
-                    if (existy(cmd.ctlpt2)) { str += cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " "; }
-                    if (existy(cmd.target)) { str += cmd.target.x + "," + cmd.target.y; }
-                    break;
-                }
+                str += this.cmd[i].toString();
                 i += 1;
             }
             return str;
@@ -569,8 +572,7 @@ possible useful parser: see http://pastie.org/1036541
             case 'M':
             case 'm':
                 p = pp.getAsCurrentPoint(pp.isRelativeCommand());
-                cmd = {};
-                cmd.command = pp.command;
+                cmd = new Command(pp.command);
                 cmd.target = p;
                 cmd.endPt = p;
                 cmd.absEndPt = p;
@@ -578,8 +580,7 @@ possible useful parser: see http://pastie.org/1036541
                 pp.start = pp.current;
                 while (!pp.isCommandOrEnd()) {
                     p = pp.getAsCurrentPoint(pp.isRelativeCommand());
-                    cmd = {};
-                    cmd.command = "L";
+                    cmd = new Command("L");
                     cmd.target = p;
                     cmd.endPt = new superpath.Point(p.x, p.y);
                     cmd.absEndPt = new superpath.Point(p.x, p.y);
@@ -589,10 +590,9 @@ possible useful parser: see http://pastie.org/1036541
             case 'L':
             case 'l':
                 do {
-                    cmd = {};
+                    cmd = new Command(pp.command);
                     cmd.current = pp.current;
                     p = pp.getAsCurrentPoint(pp.isRelativeCommand());
-                    cmd.command = pp.command;
                     cmd.target = p;
                     cmd.endPt = new superpath.Point(p.x, p.y);
                     cmd.absEndPt = new superpath.Point(p.x, p.y);
@@ -607,13 +607,12 @@ possible useful parser: see http://pastie.org/1036541
             case 'H':
             case 'h':
                 do {
-                    cmd = { };
+                    cmd = new Command(pp.command);
                     cmd.current = pp.current;
                     coord = pp.getScalar();
                     t = pp.isRelativeCommand();
                     newP = new superpath.Point((pp.isRelativeCommand() ? pp.current.x : 0) + coord, pp.current.y);
                     pp.current = newP;
-                    cmd.command = pp.command;
                     cmd.d = (pp.isRelativeCommand() ? pp.current.x : 0) + coord;
                     cmd.endPt = newP;
                     cmd.absEndPt = new superpath.Point(newP.x, newP.y);
@@ -629,12 +628,11 @@ possible useful parser: see http://pastie.org/1036541
             case 'V':
             case 'v':
                 do {
-                    cmd = { };
+                    cmd = new Command(pp.command);
                     cmd.current = pp.current;
                     coord = pp.getScalar();
                     newP = new superpath.Point(pp.current.x, (pp.isRelativeCommand() ? pp.current.y : 0) + coord);
                     pp.current = newP;
-                    cmd.command = pp.command;
                     cmd.d = (pp.isRelativeCommand() ? pp.current.x : 0) + coord;
                     cmd.endPt = newP;
                     cmd.absEndPt =  new superpath.Point(newP.x, newP.y);
@@ -650,12 +648,11 @@ possible useful parser: see http://pastie.org/1036541
             case 'C':
             case 'c':
                 do {
-                    cmd = { };
+                    cmd = new Command(pp.command);
                     cmd.current = pp.current;
                     cntrl1 = pp.getAsControlPoint(pp.isRelativeCommand());
                     cntrl2 = pp.getAsControlPoint(pp.isRelativeCommand());
                     cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
-                    cmd.command = pp.command;
                     cmd.ctlpt1 = cntrl1;
                     cmd.ctlpt2 = cntrl2;
                     cmd.target = cp;
@@ -686,11 +683,10 @@ possible useful parser: see http://pastie.org/1036541
             case 'Q':
             case 'q':
                 do {
-                    cmd = { };
+                    cmd = new Command(pp.command);
                     cmd.current = pp.current;
                     cntrl = pp.getAsControlPoint(pp.isRelativeCommand());
                     cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
-                    cmd.command = pp.command;
                     cmd.ctlpt1 = cntrl;
                     cmd.target = cp;
                     cmd.endPt = cp;
@@ -705,8 +701,7 @@ possible useful parser: see http://pastie.org/1036541
                 while (!pp.isCommandOrEnd());
                 break;
             case superpath.OPENCHUNK:
-                cmd = {};
-                cmd.command = pp.command;
+                cmd = new Command(pp.command);
                 idsubpath = pp.getSubpathRefId();
                 descriptionsubpath = pp.getSubpathDesc();
                 cmd.chunkName = idsubpath;
@@ -718,8 +713,7 @@ possible useful parser: see http://pastie.org/1036541
                 break;
             case superpath.REVERSEDREF:
             case superpath.DIRECTREF:
-                cmd = {};
-                cmd.command = pp.command;
+                cmd = new Command(pp.command);
                 cmd.ref = pp.getSubpathRefId();
                 cmdList.push(cmd);
                 break;
@@ -732,9 +726,8 @@ possible useful parser: see http://pastie.org/1036541
             case 'Z':
             case 'z':
                 do {
-                    cmd = {};
+                    cmd = new Command(pp.command);
                     cmd.current = pp.current;
-                    cmd.command = pp.command;
                     cmdList.push(cmd);
                 }
                 while (!pp.isCommandOrEnd());
