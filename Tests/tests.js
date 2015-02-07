@@ -77,12 +77,11 @@ QUnit.test( "Test building command list from data and transform to relative and 
 });
 QUnit.module("Reverse order of a path");
 QUnit.test( "Test elementary path reversion", function( assert ) {
-  var newdata = superpath.reversePathData("M 90,190L220,90");
-  assert.equal( newdata, "M220,90L90,190", "Passed!" );
-});
-QUnit.test( "Test path reversion", function( assert ) {
-  var newdata = superpath.reversePathData("M 90,190 220,90 330,150 L330,150 280,230 L330,310 280,400 120,375 z");
-  assert.equal( newdata, "M120,375L280,400L330,310L280,230L330,150L330,150L220,90L90,190z", "Passed!" );
+  var data = "M 90,190L220,90";
+  var cmdList = superpath.svg_parse_path(data);
+  var relCmdList = superpath.fullrelativePathCmdList(cmdList);
+  var revCmdList = relCmdList.reverse();
+  assert.equal( relCmdList.toString(), "M90,190l130,-100", "Passed!" );
 });
 QUnit.module("Path transformation in a relative path");
 QUnit.test( "Test path transformation to fully relative path", function( assert ) {
