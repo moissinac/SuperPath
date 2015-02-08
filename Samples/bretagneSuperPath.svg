@@ -9,6 +9,7 @@
    style="display:inline"
    version="1.1"
    onload="superpath.expandPaths()">
+   
   <script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js" />
   <g
      id="CoteBretonne">

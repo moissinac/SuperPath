@@ -792,6 +792,9 @@
           } while (someChange);
           if ((pathDefinerList.length !== 0) || (pathDRefList.length !== 0) || (pathIRefList.length !== 0)) {
               console.log("Problem: some chunk reference seems impossible to solve!");
+              if (pathDefinerList.length !== 0) { console.log("Problem with" + pathDefinerList[0].toString()) ; }
+              if (pathDRefList.length !== 0) { console.log("Problem with reference" + pathDRefList[0].toString()); }
+              if (pathIRefList.length !== 0) { console.log("Problem with inverse reference" + pathIRefList[0].toString()); }
           }
       };
       // T2D2 I need to understand the following lines (inspired from code of other modules)
