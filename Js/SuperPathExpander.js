@@ -23,6 +23,9 @@
    *  License along with this library; see the file COPYING.  If not, write to
    *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
    *
+   *
+  Usage: see https://github.com/moissinac/SuperPath   
+  
   Hypothesis:
   - all subpath reference uses a relative subpath definition of the geometry (all absolute coordinates are replaced by relative ones)
   - so, all chunk definition are transated to relative commands
