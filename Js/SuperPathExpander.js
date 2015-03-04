@@ -287,7 +287,7 @@
               case 'c':
                   str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " " + cmd.target.x + "," + cmd.target.y;
                   break;
-              case 'q':
+              case 'q': case 't':
                   str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.target.x + "," + cmd.target.y;
                   break;
               }
@@ -419,8 +419,8 @@
               case 'Q':
                   cmd = createsimplecommand(crtcmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
                   cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                  if (crtcmdcode === 'Q') {
-                      cmd.command = 'q';
+                  if ((crtcmdcode === 'Q')||(crtcmdcode === 'T')) {
+                      cmd.command = (crtcmdcode==='Q'?'q':'t');
                       cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                       cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                   }
@@ -507,7 +507,7 @@
                       cmd.ctlpt2 = new superpath.Point(this.cmd[i].ctlpt1.x - target.x, this.cmd[i].ctlpt1.y - target.y);
                       cmd.target = new superpath.Point(-1 * target.x, -1 * target.y);
                       break;
-                  case 'q':
+                  case 'q': case 't':
                       target = new superpath.Point(this.cmd[i].target.x, this.cmd[i].target.y);
                       cmd.ctlpt1 = new superpath.Point(this.cmd[i].ctlpt1.x - target.x, this.cmd[i].ctlpt1.y - target.y);
                       cmd.target = new superpath.Point(-1 * target.x, -1 * target.y);
@@ -676,6 +676,25 @@
                       cmdList.push(cmd);
                   } while (!pp.isCommandOrEnd());
                   break;
+              case 'T': // T2D2
+              case 't':
+                  do {
+                      cmd = new superpath.Command(pp.command);
+                      cmd.current = pp.current;
+                      
+                      // T2D2 cntrl = reflection of the control point on the previous command relative to the cuurent point or current point if the previous command isn't Q,q,T or t
+                      cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
+                      cmd.ctlpt1 = cntrl;
+                      cmd.target = cp;
+                      cmd.absEndPt =  new superpath.Point(cp.x, cp.y);
+                      if (pp.isRelativeCommand(cmd.command)) {
+                          if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
+                              cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x, cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y);
+                          }
+                      }
+                      cmdList.push(cmd);
+                  } while (!pp.isCommandOrEnd());
+                  break;
               case superpath.OPENCHUNK:
                   cmd = new superpath.Command(pp.command);
                   idsubpath = pp.getSubpathRefId();
@@ -692,9 +711,6 @@
                   cmd = new superpath.Command(pp.command);
                   cmd.ref = pp.getSubpathRefId();
                   cmdList.push(cmd);
-                  break;
-              case 'T': // T2D2
-              case 't':
                   break;
               case 'A': // T2D2
               case 'a':
