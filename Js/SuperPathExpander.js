@@ -328,26 +328,26 @@
           } while (cmdList.cmd.length > cmdIndex);
           return someChange;
       }
+      function stringifyParameters(cmd) {
+          var str = "";
+          if (existy(cmd.ctlpt1)) { str = cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " "; }
+          if (existy(cmd.ctlpt2)) { str = cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " "; }
+          if (existy(cmd.target)) { str = cmd.target.x + "," + cmd.target.y; }
+          return str;
+      };
+      
       // associated a command letter with a function to stringify such command with his attributes
       superpath.TokensToString = { 
               "h"                  : function(input) {  return input + this.d; },
               "v"                  : function(input) {  return input + this.d; },
               "H"                  : function(input) {  return input + this.d; },
               "V"                  : function(input) {  return input + this.d; },
-              "z"                  : function(input) {  
-                  if (existy(this.ctlpt1)) { return input + this.ctlpt1.x + "," + this.ctlpt1.y + " "; }
-                  if (existy(this.ctlpt2)) { return input + this.ctlpt2.x + "," + this.ctlpt2.y + " "; }
-                  if (existy(this.target)) { return input + this.target.x + "," + this.target.y; }
-                },
+              "z"                  : function(input) {  return input + stringifyParameters(this); },
               // TODO voir comment réintroduire ces cas; comme ça, ça ne passe pas
               //superpath.OPENCHUNK  : function(input) {  return input + this.chunkName + superpath.SEPARATOR + this.strDescription + superpath.ENDCHUNK; },
               //superpath.DIRECTREF  : function(input) {  return input + this.ref + superpath.SEPARATOR; },
               //superpath.REVERSEDREF: function(input) {  return input + this.ref + superpath.SEPARATOR; },
-              "default"            : function(input) {  
-                  if (existy(this.ctlpt1)) { return input + this.ctlpt1.x + "," + this.ctlpt1.y + " "; }
-                  if (existy(this.ctlpt2)) { return input + this.ctlpt2.x + "," + this.ctlpt2.y + " "; }
-                  if (existy(this.target)) { return input + this.target.x + "," + this.target.y; }
-                }
+              "default"            : function(input) {  return input + stringifyParameters(this); }
               };
       superpath.Command = function (letter) {
           var cmd = { };
