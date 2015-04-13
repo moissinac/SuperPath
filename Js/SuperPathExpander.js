@@ -328,35 +328,33 @@
           } while (cmdList.cmd.length > cmdIndex);
           return someChange;
       }
+      // associated a command letter with a function to stringify such command with his attributes
+      superpath.TokensToString = { 
+              "h"                  : function(input) {  return input + this.d; },
+              "v"                  : function(input) {  return input + this.d; },
+              "H"                  : function(input) {  return input + this.d; },
+              "V"                  : function(input) {  return input + this.d; },
+              "z"                  : function(input) {  
+                  if (existy(this.ctlpt1)) { return input + this.ctlpt1.x + "," + this.ctlpt1.y + " "; }
+                  if (existy(this.ctlpt2)) { return input + this.ctlpt2.x + "," + this.ctlpt2.y + " "; }
+                  if (existy(this.target)) { return input + this.target.x + "," + this.target.y; }
+                },
+              // TODO voir comment réintroduire ces cas; comme ça, ça ne passe pas
+              //superpath.OPENCHUNK  : function(input) {  return input + this.chunkName + superpath.SEPARATOR + this.strDescription + superpath.ENDCHUNK; },
+              //superpath.DIRECTREF  : function(input) {  return input + this.ref + superpath.SEPARATOR; },
+              //superpath.REVERSEDREF: function(input) {  return input + this.ref + superpath.SEPARATOR; },
+              "default"            : function(input) {  
+                  if (existy(this.ctlpt1)) { return input + this.ctlpt1.x + "," + this.ctlpt1.y + " "; }
+                  if (existy(this.ctlpt2)) { return input + this.ctlpt2.x + "," + this.ctlpt2.y + " "; }
+                  if (existy(this.target)) { return input + this.target.x + "," + this.target.y; }
+                }
+              };
       superpath.Command = function (letter) {
           var cmd = { };
           cmd.command = letter;
           cmd.toString = function () {
-              var str = "";
-              str += this.command;
-              switch (this.command) {
-              case superpath.OPENCHUNK:
-                  str += this.chunkName + superpath.SEPARATOR + this.strDescription + superpath.ENDCHUNK;
-                  break;
-              case superpath.DIRECTREF:
-              case superpath.REVERSEDREF:
-                  str += this.ref + superpath.SEPARATOR;
-                  break;
-              case "h":
-              case "v":
-              case "H":
-              case "V":
-                  str += this.d;
-                  break;
-              case "z": 
-                  break;
-              default:
-                  if (existy(this.ctlpt1)) { str += this.ctlpt1.x + "," + this.ctlpt1.y + " "; }
-                  if (existy(this.ctlpt2)) { str += this.ctlpt2.x + "," + this.ctlpt2.y + " "; }
-                  if (existy(this.target)) { str += this.target.x + "," + this.target.y; }
-                  break;
-              }
-              return str;        
+              var token = superpath.TokensToString[cmd.command] || superpath.TokensToString.default;
+              return token(input);
           };
           return cmd;
       };
