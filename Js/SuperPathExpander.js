@@ -334,7 +334,7 @@
           if (existy(cmd.ctlpt2)) { str = cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " "; }
           if (existy(cmd.target)) { str = cmd.target.x + "," + cmd.target.y; }
           return str;
-      };
+      }
       
       // associated a command letter with a function to stringify such command with his attributes
       superpath.TokensToString = { 
@@ -349,6 +349,7 @@
               //superpath.REVERSEDREF: function(input) {  return input + this.ref + superpath.SEPARATOR; },
               "default"            : function(input) {  return input + stringifyParameters(this); }
               };
+      superpath.TokensToString[superpath.OPENCHUNK] = function(input) {  return input + this.chunkName + superpath.SEPARATOR + this.strDescription + superpath.ENDCHUNK; };
       superpath.Command = function (letter) {
           var cmd = { };
           cmd.command = letter;
