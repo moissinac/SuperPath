@@ -343,13 +343,11 @@
               "H"                  : function(input) {  return input + this.d; },
               "V"                  : function(input) {  return input + this.d; },
               "z"                  : function(input) {  return input + stringifyParameters(this); },
-              // TODO voir comment réintroduire ces cas; comme ça, ça ne passe pas
-              //superpath.OPENCHUNK  : function(input) {  return input + this.chunkName + superpath.SEPARATOR + this.strDescription + superpath.ENDCHUNK; },
-              //superpath.DIRECTREF  : function(input) {  return input + this.ref + superpath.SEPARATOR; },
-              //superpath.REVERSEDREF: function(input) {  return input + this.ref + superpath.SEPARATOR; },
               "default"            : function(input) {  return input + stringifyParameters(this); }
               };
       superpath.TokensToString[superpath.OPENCHUNK] = function(input) {  return input + this.chunkName + superpath.SEPARATOR + this.strDescription + superpath.ENDCHUNK; };
+      superpath.TokensToString[superpath.DIRECTREF] = function(input) {  return input + this.ref + superpath.SEPARATOR; };
+      superpath.TokensToString[superpath.REVERSEDREF] = function(input) {  return input + this.ref + superpath.SEPARATOR; };
       superpath.Command = function (letter) {
           var cmd = { };
           cmd.command = letter;
