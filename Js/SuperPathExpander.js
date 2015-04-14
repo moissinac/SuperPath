@@ -328,35 +328,35 @@
           } while (cmdList.cmd.length > cmdIndex);
           return someChange;
       }
+
       function stringifyParameters(cmd) {
           var str = "";
-          if (existy(cmd.ctlpt1)) { str = cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " "; }
-          if (existy(cmd.ctlpt2)) { str = cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " "; }
-          if (existy(cmd.target)) { str = cmd.target.x + "," + cmd.target.y; }
+          if (existy(cmd.ctlpt1)) { str += cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " "; }
+          if (existy(cmd.ctlpt2)) { str += cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " "; }
+          if (existy(cmd.target)) { str += cmd.target.x + "," + cmd.target.y; }
           return str;
       }
       
       // associated a command letter with a function to stringify such command with his attributes
       superpath.TokensToString = { 
-              "h"                  : function(input) {  return input + this.d; },
-              "v"                  : function(input) {  return input + this.d; },
-              "H"                  : function(input) {  return input + this.d; },
-              "V"                  : function(input) {  return input + this.d; },
-              "z"                  : function(input) {  return input + stringifyParameters(this); },
-              "default"            : function(input) {  return input + stringifyParameters(this); }
+              "h"                  : function() {  return this.command + this.d; },
+              "v"                  : function() {  return this.command + this.d; },
+              "H"                  : function() {  return this.command + this.d; },
+              "V"                  : function() {  return this.command + this.d; },
+              "z"                  : function() {  return this.command + stringifyParameters(this); },
+              "default"            : function() {  return this.command + stringifyParameters(this); }
               };
-      superpath.TokensToString[superpath.OPENCHUNK] = function(input) {  return input + this.chunkName + superpath.SEPARATOR + this.strDescription + superpath.ENDCHUNK; };
-      superpath.TokensToString[superpath.DIRECTREF] = function(input) {  return input + this.ref + superpath.SEPARATOR; };
-      superpath.TokensToString[superpath.REVERSEDREF] = function(input) {  return input + this.ref + superpath.SEPARATOR; };
+      // extensions
+      superpath.TokensToString[superpath.OPENCHUNK] = function() {  return this.command + this.chunkName + superpath.SEPARATOR + this.strDescription + superpath.ENDCHUNK; };
+      superpath.TokensToString[superpath.DIRECTREF] = function() {  return this.command + this.ref + superpath.SEPARATOR; };
+      superpath.TokensToString[superpath.REVERSEDREF] = function() {  return this.command + this.ref + superpath.SEPARATOR; };
       superpath.Command = function (letter) {
           var cmd = { };
           cmd.command = letter;
-          cmd.toString = function () {
-              var token = superpath.TokensToString[cmd.command] || superpath.TokensToString.default;
-              return token(input);
-          };
+          cmd.toString = superpath.TokensToString[cmd.command] || superpath.TokensToString.default;
           return cmd;
       };
+
       function createsimplecommand(crtcmdcode, x, y) {
           var cmd = new superpath.Command(crtcmdcode), // m? or M
               pt = new superpath.Point(x, y); 
@@ -364,12 +364,111 @@
           cmd.target = pt;
           return cmd;
       }
+
+      // table of rules for the creation of a command list from the codes
+      superpath.cmdCreationRules = {
+              'v': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d); 
+                    cmd.d = cmd.target.y;
+                    return cmd;
+                  },
+              'V': function(cmdList, revCmdList, icmd,  cmdcode) {
+                    var cmd = createsimplecommand(cmdcode, revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d);
+                    if (crtcmdcode === 'V') {
+                        cmd.command = 'v';
+                        cmd.target.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                    }
+                    cmd.d = cmd.target.y;
+                    return cmd;
+                  },
+              'h': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].d, revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.d = cmd.target.x;
+                    return cmd;
+                  },
+              'H': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].d, revCmdList.cmd[icmd - 1].crtPt.y);
+                    if (cmdcode === 'H') {
+                        cmd.command = 'h';
+                        cmd.target.x -= revCmdList.cmd[icmd - 1].crtPt.x;
+                    }
+                    cmd.d = cmd.target.x;
+                    return cmd;
+                  },
+              'm': // T2D2 check for relative move
+                  function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                    return cmd;
+                  },
+              'M': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                    return cmd;
+                  },
+              'l': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                    return cmd;
+                  },
+              'L': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                    if (cmdcode === 'L') {
+                        cmd.command = 'l';
+                        cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    }
+                    return cmd;
+                  },
+              'q': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                    cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+                    return cmd;
+                  },
+              'Q': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                    cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+                    if ((cmdcode === 'Q')||(cmdcode === 'T')) {
+                        cmd.command = (cmdcode==='Q'?'q':'t');
+                        cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                        cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    }
+                    return cmd;
+                  },
+              'c': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                    cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+                    cmd.ctlpt2 = new superpath.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
+                    return cmd;
+                  },
+              'C': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                    cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+                    cmd.ctlpt2 = new superpath.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
+                    if (cmdcode === 'C') {
+                        cmd.command = 'c';
+                        cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                        cmd.ctlpt2.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                        cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    }
+                    return cmd;
+                  },
+              'z': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = new superpath.Command('z');
+                    return cmd;
+                  },
+              'default': function(cmdList, revCmdList, icmd,  cmdcode) { return null; }
+      };
+      // extension
+      superpath.cmdCreationRules[superpath.OPENCHUNK] = function(cmdList, revCmdList, icmd, cmdcode) { 
+                    var cmd = new superpath.Command(superpath.OPENCHUNK);
+                    cmd.chunkName = cmdList.cmd[icmd].chunkName;
+                    cmd.strDescription = cmdList.cmd[icmd].strDescription;
+                    return cmd;
+                  };
+      
       // cmdList is obtained by calling  svg_parse_path on a path data    
       superpath.fullrelativePathCmdList = function (cmdList) {
           // transform the path data to use only relative commands
           var revCmdList = new superpath.CmdList(),
               crtPt = { },
-              cmd,
+              cmd = null,
               crtcmdcode,
               icmd = 0,
               len = cmdList.cmd.length;
@@ -378,75 +477,9 @@
           while (len > icmd) {
               // pour chaque commande passer en relatif et calculer le nouveau point courant
               crtcmdcode = cmdList.cmd[icmd].command;
-              switch (crtcmdcode) {
-              case 'v':
-              case 'V':
-                  cmd = createsimplecommand(crtcmdcode, revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d);
-                  if (crtcmdcode === 'V') {
-                      cmd.command = 'v';
-                      cmd.target.y -= revCmdList.cmd[icmd - 1].crtPt.y;
-                  }
-                  cmd.d = cmd.target.y;
-                  revCmdList.cmd.push(cmd);
-                  break;
-              case 'h':
-              case 'H':
-                  cmd = createsimplecommand(crtcmdcode, cmdList.cmd[icmd].d, revCmdList.cmd[icmd - 1].crtPt.y);
-                  if (crtcmdcode === 'H') {
-                      cmd.command = 'h';
-                      cmd.target.x -= revCmdList.cmd[icmd - 1].crtPt.x;
-                  }
-                  cmd.d = cmd.target.x;
-                  revCmdList.cmd.push(cmd);
-                  break;
-              case 'm': // T2D2 check for relative move
-              case 'M':
-                  revCmdList.cmd.push(createsimplecommand(crtcmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y));
-                  break;
-              case 'L':
-              case 'l':
-                  cmd = createsimplecommand(crtcmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                  if (crtcmdcode === 'L') {
-                      cmd.command = 'l';
-                      cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                  }
-                  revCmdList.cmd.push(cmd);
-                  break;
-              case 'q':
-              case 'Q':
-                  cmd = createsimplecommand(crtcmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                  cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                  if ((crtcmdcode === 'Q')||(crtcmdcode === 'T')) {
-                      cmd.command = (crtcmdcode==='Q'?'q':'t');
-                      cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                      cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                  }
-                  revCmdList.cmd.push(cmd);
-                  break;
-              case 'c':
-              case 'C':
-                  cmd = createsimplecommand(crtcmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                  cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                  cmd.ctlpt2 = new superpath.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
-                  if (crtcmdcode === 'C') {
-                      cmd.command = 'c';
-                      cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                      cmd.ctlpt2.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                      cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                  }
-                  revCmdList.cmd.push(cmd);
-                  break;
-              case superpath.OPENCHUNK:
-                  cmd = new superpath.Command(superpath.OPENCHUNK);
-                  cmd.chunkName = cmdList.cmd[icmd].chunkName;
-                  cmd.strDescription = cmdList.cmd[icmd].strDescription;
-                  revCmdList.cmd.push(cmd);
-                  break;
-              case 'z': //
-                  cmd = new superpath.Command('z');
-                  revCmdList.cmd.push(cmd);
-                  break;
-              }
+              var token = superpath.cmdCreationRules[crtcmdcode] || superpath.cmdCreationRules.default;
+              cmd = token(cmdList, revCmdList, icmd, crtcmdcode);
+              if (cmd)  {  revCmdList.cmd.push(cmd); cmd = null; }
               icmd += 1;
           }
           return revCmdList;
