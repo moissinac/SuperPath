@@ -364,7 +364,10 @@
           cmd.target = pt;
           return cmd;
       }
-
+      var simpleCommand = function(cmdList, revCmdList, icmd,  cmdcode) { 
+                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                    return cmd;
+                  }; 
       // table of rules for the creation of a command list from the codes
       superpath.cmdCreationRules = {
               'v': function(cmdList, revCmdList, icmd,  cmdcode) { 
@@ -395,19 +398,9 @@
                     cmd.d = cmd.target.x;
                     return cmd;
                   },
-              'm': // T2D2 check for relative move
-                  function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                    return cmd;
-                  },
-              'M': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                    return cmd;
-                  },
-              'l': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                    return cmd;
-                  },
+              'm': simpleCommand, // T2D2 check for relative move
+              'M': simpleCommand,
+              'l': simpleCommand,
               'L': function(cmdList, revCmdList, icmd,  cmdcode) { 
                     var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
                     if (cmdcode === 'L') {
