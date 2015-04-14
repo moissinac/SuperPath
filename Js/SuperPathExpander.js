@@ -501,6 +501,39 @@
               }
               return null;
           };
+          
+          this.reverseRule = {
+                  'M': function(i, cmd, commandi) {
+                        var pt = new superpath.Point(-1 * commandi.target.x, -1 * commandi.target.y);
+                        cmd.target = pt;
+                      },
+                  'h': function(i, cmd, commandi) {
+                        cmd.d = -1 * commandi.d;
+                      },
+                  'v': function(i, cmd, commandi) {
+                        cmd.d = -1 * commandi.d;
+                      },
+                  'l': function(i, cmd, commandi) {
+                        var pt = new superpath.Point(-1 * commandi.target.x, -1 * commandi.target.y);
+                        cmd.target = pt;
+                      },
+                  'c': function(i, cmd, commandi) {
+                        target = new superpath.Point(commandi.target.x, commandi.target.y);
+                        cmd.ctlpt1 = new superpath.Point(commandi.ctlpt2.x - target.x, commandi.ctlpt2.y - target.y);
+                        cmd.ctlpt2 = new superpath.Point(commandi.ctlpt1.x - target.x, commandi.ctlpt1.y - target.y);
+                        cmd.target = new superpath.Point(-1 * target.x, -1 * target.y);
+                      },
+                  'q': function(i, cmd, commandi) {
+                        target = new superpath.Point(commandi.target.x, commandi.target.y);
+                        cmd.ctlpt1 = new superpath.Point(commandi.ctlpt1.x - target.x, commandi.ctlpt1.y - target.y);
+                        cmd.target = new superpath.Point(-1 * target.x, -1 * target.y);
+                        },
+                  't': function(i, cmd, commandi) {
+                        target = new superpath.Point(commandi.target.x, commandi.target.y);
+                        cmd.ctlpt1 = new superpath.Point(commandi.ctlpt1.x - target.x, commandi.ctlpt1.y - target.y);
+                        cmd.target = new superpath.Point(-1 * target.x, -1 * target.y);
+                      }
+                  }
           this.reverse = function () {
               // works only with relative commands, except the M
               // T2D2 process all the possible commands
@@ -511,31 +544,8 @@
                   target;
               for (i = this.cmd.length - 1; i >= 0; i -= 1) {
                   cmd = new superpath.Command(this.cmd[i].command);
-                  switch (cmd.command) {
-                  case 'M':
-                      pt = new superpath.Point(-1 * this.cmd[i].target.x, -1 * this.cmd[i].target.y);
-                      cmd.target = pt;
-                      break;
-                  case 'h':
-                  case 'v':
-                      cmd.d = -1 * this.cmd[i].d;
-                      break;
-                  case 'l':
-                      pt = new superpath.Point(-1 * this.cmd[i].target.x, -1 * this.cmd[i].target.y);
-                      cmd.target = pt;
-                      break;
-                  case 'c':
-                      target = new superpath.Point(this.cmd[i].target.x, this.cmd[i].target.y);
-                      cmd.ctlpt1 = new superpath.Point(this.cmd[i].ctlpt2.x - target.x, this.cmd[i].ctlpt2.y - target.y);
-                      cmd.ctlpt2 = new superpath.Point(this.cmd[i].ctlpt1.x - target.x, this.cmd[i].ctlpt1.y - target.y);
-                      cmd.target = new superpath.Point(-1 * target.x, -1 * target.y);
-                      break;
-                  case 'q': case 't':
-                      target = new superpath.Point(this.cmd[i].target.x, this.cmd[i].target.y);
-                      cmd.ctlpt1 = new superpath.Point(this.cmd[i].ctlpt1.x - target.x, this.cmd[i].ctlpt1.y - target.y);
-                      cmd.target = new superpath.Point(-1 * target.x, -1 * target.y);
-                      break;
-                  }
+                  var rule = this.reverseRule[cmd];
+                  rule(i, cmd, this.cmd[i]);
                   revCmdList.push(cmd);
               }
               return revCmdList;
