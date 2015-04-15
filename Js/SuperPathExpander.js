@@ -778,7 +778,7 @@
           pp.reset();
           while (!pp.isEnd()) {
               pp.nextCommand();
-              var parseToken = superpath.ParseToken[pp.command];
+              parseToken = superpath.ParseToken[pp.command];
               parseToken(pp, cmdList);
           }
           return cmdList;
