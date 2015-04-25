@@ -21,15 +21,9 @@
    *
    *
   */
-  /*
-  TODO
-  avoir une méthode pour ajouter une ou des commandes au parser:
-  - ajouter des lettres aux 'tables' commands et relcommands (qui pourraient devenir de vraies tables de caractères?))
-  - ajouter des fonctions comme  this.getSubpathRefId et this.getSubpathDesc
-  */
   
 (function () {
-  "use strict";
+//  "use strict";
   var pathparser = {
       version: "0.1.0"
       };
@@ -241,7 +235,7 @@
   pathparser.addCommands(pathparser.ParseRelToken);
 
   
-  function pathPreProcess(pathparser, d) {
+  function PathPreProcess(pathparser, d) {
       var regex = new RegExp("([" + commands + "])([" + commands + "])", "gm");
       // T2D2: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
       this.compressSpaces = function (s) {
@@ -597,7 +591,7 @@
       if (existy(parser))
         pp = this.PathParser = parser; 
       else
-        pp = this.PathParser = new pathPreProcess(pathparser, d); 
+        pp = this.PathParser = new PathPreProcess(pathparser, d); 
       pp.reset();
       while (!pp.isEnd()) {
           pp.nextCommand();
