@@ -1,5 +1,5 @@
   /*
-   *            SuperPath - SVG Extension
+   *            SVG SuperPath Parser extensiosn
    *
    *            Author: Jean-Claude Moissinac
    *            Copyright (c) Telecom ParisTech 2013-2015
@@ -24,147 +24,7 @@
    *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
    *
    *
-  Usage: see https://github.com/moissinac/SuperPath   
-  
-  Hypothesis:
-  - all subpath reference uses a relative subpath definition of the geometry (all absolute coordinates are replaced by relative ones)
-  - so, all chunk definition are transated to relative commands
-  - after a ref, there is always an explicit command
-  - a chunk definition can't contain a chunk definition or reference
-  - a chunk definition is always followed by an explicit command
-  - a chunk definition begins always followed by an explicit command
-  
-  possible optimization:
-  when a chunk definition contains only relative commands, we can skip code used to search a previous reference point
-  
-  questions:
-  Q1: what happens if a content try to define several chunks with the same id
-  
-  possible useful parser: see http://pastie.org/1036541
   */
-  function ExtendedPathParser(superpath, d, dircmd, revcmd, opencmd, closecmd) {
-      "use strict";
-      var commands = "MmZzLlHhVvCcSsQqTtAa" + opencmd + dircmd + revcmd + closecmd,
-          relcommands = "mlhvcsqtaz" + opencmd + dircmd + revcmd + closecmd,
-          regex = new RegExp("([" + commands + "])([" + commands + "])", "gm");
-      // T2D2: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
-      this.compressSpaces = function (s) {
-          return s.replace(/[\s\r\t\n]+/gm, ' ');
-      };
-      this.trim = function (s) {
-          return s.replace(/^\s+|\s+$/g, '');
-      };
-      d = d.replace(/,/gm, ' ');
-      // get rid of all commas
-      // T2D2 undestand why the following line is repeted two times
-      d = d.replace(regex, '$1 $2');
-      // separate commands from commands
-      d = d.replace(regex, '$1 $2');
-      // separate commands from commands
-      regex = new RegExp("([" + commands + "])([^\s])", "gm");
-      d = d.replace(regex, '$1 $2');
-      // separate commands from points
-      regex = new RegExp("([^\s])([" + commands + "])", "gm");
-      d = d.replace(regex, '$1 $2');
-      // separate commands from points
-      d = d.replace(/([0-9])([+\-])/gm, '$1 $2');
-      // separate digits when no comma
-      d = d.replace(/(\.[0-9]*)(\.)/gm, '$1 $2');
-      // separate digits when no comma
-      d = d.replace(/([Aa](\s+[0-9]+){3})\s+ ([01])\s*([01])/gm, '$1 $3 $4 ');
-      // shorthand elliptical arc path syntax
-      d = this.compressSpaces(d);
-      // compress multiple spaces
-      d = this.trim(d);
-      regex = new RegExp("^[" + commands + "]$", "gm");
-      this.tokens = d.split(' ');
-      this.reset = function () {
-          this.i = -1;
-          this.command = '';
-          this.previousCommand = '';
-          this.start = new superpath.Point(0, 0);
-          this.control = new superpath.Point(0, 0);
-          this.current = new superpath.Point(0, 0);
-          this.points = [];
-          this.angles = [];
-      };
-      this.isEnd = function () {
-          return this.i >= this.tokens.length - 1;
-      };
-      this.isCommandOrEnd = function () {
-          if (this.isEnd()) {
-              return true;
-          }
-          return this.tokens[this.i + 1].match(regex) !== null;
-      };
-      this.isRelativeCommand = function () {
-          return (relcommands.indexOf(this.command) !== -1);
-      };
-      this.getToken = function () {
-          this.i += 1;
-          return this.tokens[this.i];
-      };
-      this.getSubpathRefId = function () {
-          var id = "";
-          do {
-              id += this.getToken();
-          } while (id.indexOf("|") === -1);
-          // remove spaces coming from the initial code of the parser which segments the tokens
-          while (id.indexOf(" ") !== -1) {
-              id = id.replace(" ", "");
-          }
-          return id.slice(0, id.indexOf("|"));
-      };
-      this.getSubpathDesc = function () {
-          var str = this.getToken(),
-              toc = this.getToken();
-          while (toc !== superpath.ENDCHUNK) {
-              str += toc + " "; 
-              toc = this.getToken();
-          }
-          return str;
-      };
-      this.getScalar = function () {
-          return parseFloat(this.getToken());
-      };
-      this.nextCommand = function () {
-          this.previousCommand = this.command;
-          this.command = this.getToken();
-      };
-      this.getPoint = function (relative) {
-          // if relative is false, make the point absolute
-          var pl = new superpath.Point(this.getScalar(), this.getScalar());
-          return (relative ? pl : this.makeAbsolute(pl));
-      };
-      this.getAsControlPoint = function (relative) {
-          var pl = this.getPoint(relative);
-          this.control = pl;
-          return pl;
-      };
-      this.getAsCurrentPoint = function (relative) {
-          var pl = this.getPoint(relative);
-          this.current = pl;
-          return pl;
-      };
-      this.getReflectedControlPoint = function () {
-          if (this.previousCommand.toLowerCase() !== 'c' &&
-                  this.previousCommand.toLowerCase() !== 's' &&
-                  this.previousCommand.toLowerCase() !== 'q' &&
-                  this.previousCommand.toLowerCase() !== 't') {
-              return this.current;
-          }
-          // reflect point
-          var pl = new superpath.Point(2 * this.current.x - this.control.x, 2 * this.current.y - this.control.y);
-          return pl;
-      };
-      this.makeAbsolute = function (p) {
-          if (this.isRelativeCommand()) {
-              p.translate(this.current.x, this.current.y);
-          }
-          return p;
-      };
-  }
-  
   (function () {
       "use strict";
       var superpath = {
@@ -175,11 +35,58 @@
           DIRECTREF: "#",
           REVERSEDREF: "!"
       };
+      
+      // extensions
+      superpath.ParseToken = {};
+      function getSubpathRefId(pp) {
+          var id = "";
+          do {
+              id += pp.getToken();
+          } while (id.indexOf(superpath.SEPARATOR) === -1); // T2D2 attention ici j'ai un élément de syntaxe en dur
+          // remove spaces coming from the initial code of the parser which segments the tokens
+          while (id.indexOf(" ") !== -1) {
+              id = id.replace(" ", "");
+          }
+          return id.slice(0, id.indexOf("|"));
+      }
+
+      function getSubpathDesc(pp) {
+          var str = pp.getToken(),
+              toc = pp.getToken();
+          while ((existy(toc)) && (toc !== superpath.ENDCHUNK)) {
+              str += toc + " "; 
+              toc = pp.getToken();
+          }
+          return str;
+      }
+      
+      superpath.ParseToken[superpath.OPENCHUNK] = function(pp, cmdList) {
+                  var cmd = new superpath.Command(pp.command);
+                  var idsubpath = getSubpathRefId(pp);
+                  var descriptionsubpath = getSubpathDesc(pp);
+                  cmd.chunkName = idsubpath;
+                  cmd.strDescription = descriptionsubpath; // T2D2 replace it by a list of commands??
+                  if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
+                      cmd.crtPt = cmdList.cmd[cmdList.cmd.length - 1].absEndPt;
+                  }
+                  cmdList.push(cmd);
+      };
+      superpath.ParseToken[superpath.REVERSEDREF] =
+      superpath.ParseToken[superpath.DIRECTREF] = function(pp, cmdList) {
+                  var cmd = new superpath.Command(pp.command);
+                  cmd.ref = getSubpathRefId(pp);
+                  cmdList.push(cmd);
+      };
+      superpath.ParseToken[superpath.ENDCHUNK] = function(pp, cmdList) {
+      };
+
       superpath.chunks = []; // dictionnary of subpath
       function existy(x) {
           return (x !== null) && (x !== undefined);
       }
-      /* T2D2
+
+/* T2D2 mettre ça en point à traiter dans le github (ça enlèvera des lignes ici et clarifiera le code)
+      et faire pareil pour tous les T2D2
       for expandReversedChunks and expandChunks
       verify if the done expansion, only on the data string, is enough or
       if I need to expand the associated cmdList
@@ -264,8 +171,8 @@
       function buildCmdList(desc, startingPt) {
           // add a fake M command to resolve the absolute commands againt a reference point
           var data = "M" + startingPt.x + "," + startingPt.y + desc,
-              cmdList = superpath.svg_parse_path(data),
-              relCmdList = superpath.fullrelativePathCmdList(cmdList);
+              cmdList = pathparser.svg_parse_path(data),
+              relCmdList = pathparser.fullrelativePathCmdList(cmdList);
           relCmdList.cmd = relCmdList.cmd.slice(1);
           // remove the fake starting 'M' command
           return relCmdList;
@@ -304,7 +211,7 @@
               cmd,
               someChange = false;
           path.chunks = []; // to know chunks defined in a path
-          cmdList = path.cmdList = superpath.svg_parse_path(newpathdata);
+          cmdList = path.cmdList = pathparser.svg_parse_path(newpathdata);
           cmdIndex = 0;
           do {
               cmd = cmdList.cmd[cmdIndex];
@@ -353,7 +260,7 @@
       superpath.Command = function (letter) {
           var cmd = { };
           cmd.command = letter;
-          cmd.toString = superpath.TokensToString[cmd.command] || superpath.TokensToString.default;
+          cmd.toString = superpath.TokensToString[cmd.command] || superpath.TokensToString["default"];
           return cmd;
       };
 
@@ -456,27 +363,6 @@
                     return cmd;
                   };
       
-      // cmdList is obtained by calling  svg_parse_path on a path data    
-      superpath.fullrelativePathCmdList = function (cmdList) {
-          // transform the path data to use only relative commands
-          var revCmdList = new superpath.CmdList(),
-              crtPt = { },
-              cmd = null,
-              crtcmdcode,
-              icmd = 0,
-              len = cmdList.cmd.length;
-          crtPt.x = cmdList.cmd[0].target.x;
-          crtPt.y = cmdList.cmd[0].target.y;
-          while (len > icmd) {
-              // pour chaque commande passer en relatif et calculer le nouveau point courant
-              crtcmdcode = cmdList.cmd[icmd].command;
-              var token = superpath.cmdCreationRules[crtcmdcode] || superpath.cmdCreationRules.default;
-              cmd = token(cmdList, revCmdList, icmd, crtcmdcode);
-              if (cmd)  {  revCmdList.cmd.push(cmd); cmd = null; }
-              icmd += 1;
-          }
-          return revCmdList;
-      };
       superpath.Point = function (x, y) {
           this.x = x;
           this.y = y;
@@ -485,79 +371,28 @@
               this.y += dy;
           };
       };
-      superpath.CmdList = function () {
-          this.cmd = [];
-          this.getSubpathStartingPoint = function (id) {
-              // I suppose that if the chunk exists, it has a startingPoint
-              var icmd = 0,
-                  cmd;
-              for (icmd = 0; this.cmd.length > icmd + 1; icmd += 1) {
-                  cmd = this.cmd[icmd];
-                  if ((cmd.command === superpath.OPENCHUNK) && (cmd.chunkName === id)) {
-                      if (existy(cmd.crtPt)) {
-                          return cmd.crtPt;
-                      }
+      superpath.getSubpathStartingPoint = function(cmdList, id) {
+          // I suppose that if the chunk exists, it has a startingPoint
+          var icmd = 0,
+              cmd;
+          for (icmd = 0; cmdList.cmd.length > icmd + 1; icmd += 1) {
+              cmd = cmdList.cmd[icmd];
+              if ((cmd.command === superpath.OPENCHUNK) && (cmd.chunkName === id)) {
+                  if (existy(cmd.crtPt)) {
+                      return cmd.crtPt;
                   }
               }
-              return null;
-          };
-          var simpleReverse =   function(i, cmd, commandi) {
-                        var pt = new superpath.Point(-1 * commandi.target.x, -1 * commandi.target.y);
-                        cmd.target = pt;
-                      };
-          var qortReverse =  function(i, cmd, commandi) {
-                        var target = new superpath.Point(commandi.target.x, commandi.target.y);
-                        cmd.ctlpt1 = new superpath.Point(commandi.ctlpt1.x - target.x, commandi.ctlpt1.y - target.y);
-                        cmd.target = new superpath.Point(-1 * target.x, -1 * target.y);
-                        };
-          this.reverseRules = {
-                  'M': simpleReverse,
-                  'h': function(i, cmd, commandi) {
-                        cmd.d = -1 * commandi.d;
-                      },
-                  'v': function(i, cmd, commandi) {
-                        cmd.d = -1 * commandi.d;
-                      },
-                  'l': simpleReverse,
-                  'c': function(i, cmd, commandi) {
-                        var target = new superpath.Point(commandi.target.x, commandi.target.y);
-                        cmd.ctlpt1 = new superpath.Point(commandi.ctlpt2.x - target.x, commandi.ctlpt2.y - target.y);
-                        cmd.ctlpt2 = new superpath.Point(commandi.ctlpt1.x - target.x, commandi.ctlpt1.y - target.y);
-                        cmd.target = new superpath.Point(-1 * target.x, -1 * target.y);
-                      },
-                  'q': qortReverse, // q or t
-                  't': qortReverse
-                  };
-          this.reverse = function () {
-              // works only with relative commands, except the M
-              // T2D2 process all the possible commands
-              var revCmdList = new superpath.CmdList(),
-                  i,
-                  cmd,
-                  pt,
-                  target;
-              for (i = this.cmd.length - 1; i >= 0; i -= 1) {
-                  cmd = new superpath.Command(this.cmd[i].command);
-                  var rule = this.reverseRules[cmd];
-                  rule(i, cmd, this.cmd[i]);
-                  revCmdList.push(cmd);
-              }
-              return revCmdList;
-          };
-          this.push = function (cmd) {
-              this.cmd.push(cmd);
-          };
-          this.toString = function () {
-              // T2D2 process all the possible commands
-              var i = 0,
-                  str = "";
-              while (this.cmd.length > i) {
-                  str += this.cmd[i].toString();
-                  i += 1;
-              }
-              return str;
-          };
+          }
+          return null;
       };
+      /*  extension to be checked */
+      superpath.cmdCreationRules[superpath.OPENCHUNK] = function(cmdList, revCmdList, icmd, cmdcode) { 
+                    var cmd = new superpath.Command(superpath.OPENCHUNK);
+                    cmd.chunkName = cmdList.cmd[icmd].chunkName;
+                    cmd.strDescription = cmdList.cmd[icmd].strDescription;
+                    return cmd;
+                  };
+      /* end of: extension to be checked */
       
       var parseM = function(pp, cmdList) {
             var p = pp.getAsCurrentPoint(pp.isRelativeCommand());
@@ -723,66 +558,12 @@
                   } while (!pp.isCommandOrEnd());
                   // T2D2 verify this strange while
       };
-      // defines parsing processe associated to each command
-      superpath.ParseToken = {
-              'M': parseM,
-              'm': parseM,
-              'L': parseL,
-              'l': parseL,
-              'H': parseH,
-              'h': parseH,
-              'V': parseV,
-              'v': parseV,
-              'C': parseC,
-              'c': parseC,
-              'S': parseS,
-              's': parseS,
-              'Q': parseQ,
-              'q': parseQ,
-              'T': parseT,// T2D2
-              't': parseT,
-              'A': parseA, // T2D2
-              'Z': parseZ,
-              'z': parseZ
-      };
-      // extensions
-      superpath.ParseToken[superpath.OPENCHUNK] = function(pp, cmdList) {
-                  var cmd = new superpath.Command(pp.command);
-                  var idsubpath = pp.getSubpathRefId();
-                  var descriptionsubpath = pp.getSubpathDesc();
-                  cmd.chunkName = idsubpath;
-                  cmd.strDescription = descriptionsubpath; // T2D2 replace it by a list of commands??
-                  if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
-                      cmd.crtPt = cmdList.cmd[cmdList.cmd.length - 1].absEndPt;
-                  }
-                  cmdList.push(cmd);
-      };
-      superpath.ParseToken[superpath.REVERSEDREF] =
-      superpath.ParseToken[superpath.DIRECTREF] = function(pp, cmdList) {
-                  var cmd = new superpath.Command(pp.command);
-                  cmd.ref = pp.getSubpathRefId();
-                  cmdList.push(cmd);
-      };
      // parsing path ; source inspired from canvg library
       // T2D2 join the author
       // T2D2 to complete for the A T and S commands
       // T2D2 check for the following problem:
       //  possible that doesn't work if the id of the chunk contains a cmd code and if a chunk contains a chunk
       // recursivity and circularity of the chunk functionality must be analyzed
-      superpath.svg_parse_path = function (attribute_content) {
-          var d = attribute_content,
-              cmdList = new superpath.CmdList(),
-              pp;
-          var parseToken;
-          pp = this.PathParser = new ExtendedPathParser(superpath, d, superpath.DIRECTREF, superpath.REVERSEDREF, superpath.OPENCHUNK, superpath.ENDCHUNK); 
-          pp.reset();
-          while (!pp.isEnd()) {
-              pp.nextCommand();
-              parseToken = superpath.ParseToken[pp.command];
-              parseToken(pp, cmdList);
-          }
-          return cmdList;
-      };
       function buildTablesOfPathUsingChunk(pathlist, pathDefinerList, pathDRefList, pathIRefList) {
           var iPath,
               path,
@@ -850,6 +631,8 @@
               pathDRefList = [],
               pathIRefList = [],
               someChange = false;
+          pathparser.addCommands(superpath.ParseToken);
+          pathparser.addCmdCreationRules(superpath.cmdCreationRules);
           buildTablesOfPathUsingChunk(pathlist, pathDefinerList, pathDRefList, pathIRefList);
           do {
               // try to process the chunk definitions and resolve the references until nothing appends
@@ -879,4 +662,620 @@
       } else {
           this.superpath = superpath;
       }
+}).call(this);
+  /*
+   *            SVG Path Parser with capability to define extensiosn
+   *
+   *            Author: Jean-Claude Moissinac
+   *            Copyright (c) Telecom ParisTech 2015
+   *                    All rights reserved
+   *
+   *  SVGPathParser is free software; you can redistribute it and/or modify
+   *  it under the terms of the GNU Lesser General Public License as published by
+   *  the Free Software Foundation; either version 2, or (at your option)
+   *  any later version.
+   *
+   *  SVG Path Parser is distributed in the hope that it will be useful,
+   *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+   *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   *  GNU Lesser General Public License for more details.
+   *
+   *  You should have received a copy of the GNU Lesser General Public
+   *  License along with this library; see the file COPYING.  If not, write to
+   *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+   *
+   *
+  */
+  /*
+  TODO
+  avoir une méthode pour ajouter une ou des commandes au parser:
+  - ajouter des lettres aux 'tables' commands et relcommands (qui pourraient devenir de vraies tables de caractères?))
+  - ajouter des fonctions comme  this.getSubpathRefId et this.getSubpathDesc
+  */
+  
+(function () {
+  "use strict";
+  var pathparser = {
+      version: "0.1.0"
+      };
+  var abscommands = "MZLHVCSQTA",
+      relcommands = "mzlhvcsqta",
+      commands = abscommands + relcommands;
+  
+  // parsing functions to build internal command representation from each parsed command
+  var parseM = function(pp, cmdList) {
+        var p = pp.getAsCurrentPoint(pp.isRelativeCommand());
+        var cmd = new pathparser.Command(pp.command);
+        cmd.target = p;
+        cmd.absEndPt = p;
+        cmdList.push(cmd);
+        pp.start = pp.current;
+        while (!pp.isCommandOrEnd()) {
+            p = pp.getAsCurrentPoint(pp.isRelativeCommand());
+            cmd = new pathparser.Command("L");
+            cmd.target = p;
+            cmd.absEndPt = new pathparser.Point(p.x, p.y);
+            cmdList.push(cmd);
+        }
+  };
+  var parseL = function(pp, cmdList) {
+              var cmd;
+              var p;
+              do {
+                  cmd = new pathparser.Command(pp.command);
+                  cmd.current = pp.current;
+                  p = pp.getAsCurrentPoint(pp.isRelativeCommand());
+                  cmd.target = p;
+                  cmd.absEndPt = new pathparser.Point(p.x, p.y);
+                  if (pp.isRelativeCommand(cmd.command)) {
+                      if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
+                          cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x, cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y);
+                      }
+                  }
+                  cmdList.push(cmd);
+              } while (!pp.isCommandOrEnd());
+  };
+  var parseH = function(pp, cmdList) {
+              var cmd;
+              var p;
+              var coord;
+              var newP;
+              do {
+                  cmd = new pathparser.Command(pp.command);
+                  cmd.current = pp.current;
+                  coord = pp.getScalar();
+                  // t = pp.isRelativeCommand();
+                  newP = new pathparser.Point((pp.isRelativeCommand() ? pp.current.x : 0) + coord, pp.current.y);
+                  pp.current = newP;
+                  cmd.d = (pp.isRelativeCommand() ? pp.current.x : 0) + coord;
+                  cmd.absEndPt = new pathparser.Point(newP.x, newP.y);
+                  if (pp.isRelativeCommand(cmd.command)) {
+                      if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
+                          cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x, cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y);
+                      }
+                  }
+                  cmdList.push(cmd);
+              } while (!pp.isCommandOrEnd());
+  };
+  var parseV = function(pp, cmdList) {
+              var cmd;
+              var p;
+              var coord;
+              var newP;
+              do {
+                  cmd = new pathparser.Command(pp.command);
+                  cmd.current = pp.current;
+                  coord = pp.getScalar();
+                  newP = new pathparser.Point(pp.current.x, (pp.isRelativeCommand() ? pp.current.y : 0) + coord);
+                  pp.current = newP;
+                  cmd.d = (pp.isRelativeCommand() ? pp.current.x : 0) + coord;
+                  cmd.absEndPt =  new pathparser.Point(newP.x, newP.y);
+                  if (pp.isRelativeCommand(cmd.command)) {
+                      if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
+                          cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x, cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y);
+                      }
+                  }
+                  cmdList.push(cmd);
+              } while (!pp.isCommandOrEnd());
+  };
+  var parseC = function(pp, cmdList) {
+              var cmd;
+              var cntrl1,
+                  cntrl2,
+                  cp;
+              do {
+                  cmd = new pathparser.Command(pp.command);
+                  cmd.current = pp.current;
+                  cntrl1 = pp.getAsControlPoint(pp.isRelativeCommand());
+                  cntrl2 = pp.getAsControlPoint(pp.isRelativeCommand());
+                  cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
+                  cmd.ctlpt1 = cntrl1;
+                  cmd.ctlpt2 = cntrl2;
+                  cmd.target = cp;
+                  cmd.absEndPt =  new pathparser.Point(cp.x, cp.y);
+                  if (pp.isRelativeCommand(cmd.command)) {
+                      if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
+                          cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x, cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y);
+                      }
+                  }
+                  cmdList.push(cmd);
+              } while (!pp.isCommandOrEnd());
+  };
+  var parseS = function(pp, cmdList) {
+              var cmd;
+              var p;
+              /*
+              while (!pp.isCommandOrEnd()) {
+              var curr = pp.current;
+              var p1 = pp.getReflectedControlPoint();
+              var cntrl = pp.getAsControlPoint(pp.isRelativeCommand());
+              var cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
+              pp.addMarker(cp, cntrl, p1);
+              bb.addBezierCurve(curr.x, curr.y, p1.x, p1.y, cntrl.x, cntrl.y, cp.x, cp.y);
+              }
+               */
+  };
+  var parseQ = function(pp, cmdList) {
+              var cmd;
+              var cntrl,
+                  cp;
+              do {
+                  cmd = new pathparser.Command(pp.command);
+                  cmd.current = pp.current;
+                  cntrl = pp.getAsControlPoint(pp.isRelativeCommand());
+                  cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
+                  cmd.ctlpt1 = cntrl;
+                  cmd.target = cp;
+                  cmd.absEndPt =  new pathparser.Point(cp.x, cp.y);
+                  if (pp.isRelativeCommand(cmd.command)) {
+                      if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
+                          cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x, cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y);
+                      }
+                  }
+                  cmdList.push(cmd);
+              } while (!pp.isCommandOrEnd());
+  };
+  var parseT = function(pp, cmdList) {
+              var cmd;
+              var cntrl,              
+                  cp;
+              do {
+                  cmd = new pathparser.Command(pp.command);
+                  cmd.current = pp.current;
+                  
+                  // T2D2 cntrl = reflection of the control point on the previous command relative to the cuurent point or current point if the previous command isn't Q,q,T or t
+                  cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
+                  cmd.ctlpt1 = cntrl;
+                  cmd.target = cp;
+                  cmd.absEndPt =  new pathparser.Point(cp.x, cp.y);
+                  if (pp.isRelativeCommand(cmd.command)) {
+                      if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
+                          cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x, cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y);
+                      }
+                  }
+                  cmdList.push(cmd);
+              } while (!pp.isCommandOrEnd());
+  };
+  var parseA = function(pp, cmdList) {
+  };
+  var parseZ = function(pp, cmdList) {
+              var cmd;
+              do {
+                  cmd = new pathparser.Command(pp.command);
+                  cmd.current = pp.current;
+                  cmdList.push(cmd);
+              } while (!pp.isCommandOrEnd());
+              // T2D2 verify this strange while
+  };
+
+  // defines parsing process associated to each command
+  pathparser.ParseAbsToken = { // associative table which associate each absolute command with a parse function
+          'M': parseM,
+          'L': parseL,
+          'H': parseH,
+          'V': parseV,
+          'C': parseC,
+          'S': parseS,
+          'Q': parseQ,
+          'T': parseT,// T2D2
+          'A': parseA, // T2D2
+          'Z': parseZ
+  };
+  pathparser.ParseRelToken = { // associative table which associate each relative command with a parse function
+          'm': parseM,
+          'l': parseL,
+          'h': parseH,
+          'v': parseV,
+          'c': parseC,
+          's': parseS,
+          'q': parseQ,
+          't': parseT,
+          'a': parseA,
+          'z': parseZ
+  };
+  pathparser.ParseToken = {}; // associative table which associate each command with a parse function; by default, is the fusion of ParseAbsToken and ParseRelToken
+  pathparser.addCommands = function(cmdDictionnary) {
+      for (var property in cmdDictionnary) {
+        if (cmdDictionnary.hasOwnProperty(property)) {
+            pathparser.ParseToken[property] = cmdDictionnary[property];
+            commands += property;
+        }
+      }
+  };
+  pathparser.addCommands(pathparser.ParseAbsToken);
+  pathparser.addCommands(pathparser.ParseRelToken);
+
+  
+  function pathPreProcess(pathparser, d) {
+      var regex = new RegExp("([" + commands + "])([" + commands + "])", "gm");
+      // T2D2: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
+      this.compressSpaces = function (s) {
+          return s.replace(/[\s\r\t\n]+/gm, ' ');
+      };
+      this.trim = function (s) {
+          return s.replace(/^\s+|\s+$/g, '');
+      };
+      d = d.replace(/,/gm, ' '); // get rid of all commas
+      // T2D2 understand why the following line is repeted two times
+      d = d.replace(regex, '$1 $2'); // separate commands from commands
+      d = d.replace(regex, '$1 $2'); // separate commands from commands
+      regex = new RegExp("([" + commands + "])([^\s])", "gm");
+      d = d.replace(regex, '$1 $2'); // separate commands from points
+      regex = new RegExp("([^\s])([" + commands + "])", "gm");
+      d = d.replace(regex, '$1 $2'); // separate commands from points
+      d = d.replace(/([0-9])([+\-])/gm, '$1 $2'); // separate digits when no comma
+      d = d.replace(/(\.[0-9]*)(\.)/gm, '$1 $2'); // separate digits when no comma
+      d = d.replace(/([Aa](\s+[0-9]+){3})\s+ ([01])\s*([01])/gm, '$1 $3 $4 '); // shorthand elliptical arc path syntax
+      d = this.compressSpaces(d); // compress multiple spaces
+      d = this.trim(d);
+      regex = new RegExp("^[" + commands + "]$", "gm");
+      this.tokens = d.split(' ');
+      this.reset = function () {
+          this.i = -1;
+          this.command = '';
+          this.previousCommand = '';
+          this.start = new pathparser.Point(0, 0);
+          this.control = new pathparser.Point(0, 0);
+          this.current = new pathparser.Point(0, 0);
+          this.points = [];
+          this.angles = [];
+      };
+      this.isEnd = function () {
+          return this.i >= this.tokens.length - 1;
+      };
+      this.isCommandOrEnd = function () {
+          if (this.isEnd()) {
+              return true;
+          }
+          return this.tokens[this.i + 1].match(regex) !== null;
+      };
+      this.isRelativeCommand = function () {
+          return (relcommands.indexOf(this.command) !== -1);
+      };
+      this.getToken = function () {
+          this.i += 1;
+          return this.tokens[this.i];
+      };
+      this.getScalar = function () {
+          return parseFloat(this.getToken());
+      };
+      this.nextCommand = function () {
+          this.previousCommand = this.command;
+          this.command = this.getToken();
+      };
+      this.getPoint = function (relative) {
+          // if relative is false, make the point absolute
+          var pl = new pathparser.Point(this.getScalar(), this.getScalar());
+          return (relative ? pl : this.makeAbsolute(pl));
+      };
+      this.getAsControlPoint = function (relative) {
+          var pl = this.getPoint(relative);
+          this.control = pl;
+          return pl;
+      };
+      this.getAsCurrentPoint = function (relative) {
+          var pl = this.getPoint(relative);
+          this.current = pl;
+          return pl;
+      };
+      this.getReflectedControlPoint = function () {
+          if (this.previousCommand.toLowerCase() !== 'c' &&
+                  this.previousCommand.toLowerCase() !== 's' &&
+                  this.previousCommand.toLowerCase() !== 'q' &&
+                  this.previousCommand.toLowerCase() !== 't') {
+              return this.current;
+          }
+          // reflect point
+          var pl = new pathparser.Point(2 * this.current.x - this.control.x, 2 * this.current.y - this.control.y);
+          return pl;
+      };
+      this.makeAbsolute = function (p) {
+          if (this.isRelativeCommand()) {
+              p.translate(this.current.x, this.current.y);
+          }
+          return p;
+      };
+  }
+  
+  function existy(x) {
+      return (x !== null) && (x !== undefined);
+  }
+  function buildCmdList(desc, startingPt) {
+      // T2D2 check: the following fake M seems to be a bad trace of a previous implementation
+      // add a fake M command to resolve the absolute commands againt a reference point
+      var data = "M" + startingPt.x + "," + startingPt.y + desc,
+          cmdList = pathparser.svg_parse_path(data),
+          relCmdList = pathparser.fullrelativePathCmdList(cmdList);
+      relCmdList.cmd = relCmdList.cmd.slice(1);
+      // remove the fake starting 'M' command
+      return relCmdList;
+  }
+  function buildReversedCmdList(list) {
+      var rList = list.reverse();
+      return rList;
+  }
+  function strDescription(cmdList) {
+      var str = "",
+          i,
+          cmd;
+      for (i = 0; cmdList.cmd.length > i; i += 1) {
+          cmd = cmdList.cmd[i];
+          switch (cmd.command) {
+          case 'l':
+              str += cmd.command + cmd.target.x + "," + cmd.target.y;
+              break;
+          case 'c':
+              str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " " + cmd.target.x + "," + cmd.target.y;
+              break;
+          case 'q': case 't':
+              str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.target.x + "," + cmd.target.y;
+              break;
+          }
+      }
+      return str;
+  }
+
+  function stringifyParameters(cmd) {
+      var str = "";
+      if (existy(cmd.ctlpt1)) { str += cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " "; }
+      if (existy(cmd.ctlpt2)) { str += cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " "; }
+      if (existy(cmd.target)) { str += cmd.target.x + "," + cmd.target.y; }
+      return str;
+  }
+  
+  // associated a command letter with a function to stringify such command with his attributes
+  pathparser.TokensToString = { 
+          "h"                  : function() {  return this.command + this.d; },
+          "v"                  : function() {  return this.command + this.d; },
+          "H"                  : function() {  return this.command + this.d; },
+          "V"                  : function() {  return this.command + this.d; },
+          "z"                  : function() {  return this.command + stringifyParameters(this); },
+          "default"            : function() {  return this.command + stringifyParameters(this); }
+          };
+  pathparser.Command = function (letter) {
+      var cmd = { };
+      cmd.command = letter;
+      cmd.toString = pathparser.TokensToString[cmd.command] || pathparser.TokensToString["default"];
+      return cmd;
+  };
+
+  function createsimplecommand(crtcmdcode, x, y) {
+      var cmd = new pathparser.Command(crtcmdcode), // m? or M
+          pt = new pathparser.Point(x, y); 
+      cmd.crtPt = new pathparser.Point(pt.x, pt.y);
+      cmd.target = pt;
+      return cmd;
+  }
+  var simpleCommand = function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                return cmd;
+              }; 
+  // table of rules for the creation of a command list from the codes
+  pathparser.cmdCreationRules = {
+          'v': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = createsimplecommand(cmdcode, revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d); 
+                cmd.d = cmd.target.y;
+                return cmd;
+              },
+          'V': function(cmdList, revCmdList, icmd,  cmdcode) {
+                var cmd = createsimplecommand(cmdcode, revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d);
+                if (crtcmdcode === 'V') {
+                    cmd.command = 'v';
+                    cmd.target.y -= revCmdList.cmd[icmd - 1].crtPt.y;
+                }
+                cmd.d = cmd.target.y;
+                return cmd;
+              },
+          'h': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].d, revCmdList.cmd[icmd - 1].crtPt.y);
+                cmd.d = cmd.target.x;
+                return cmd;
+              },
+          'H': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].d, revCmdList.cmd[icmd - 1].crtPt.y);
+                if (cmdcode === 'H') {
+                    cmd.command = 'h';
+                    cmd.target.x -= revCmdList.cmd[icmd - 1].crtPt.x;
+                }
+                cmd.d = cmd.target.x;
+                return cmd;
+              },
+          'm': simpleCommand, // T2D2 check for relative move
+          'M': simpleCommand,
+          'l': simpleCommand,
+          'L': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                if (cmdcode === 'L') {
+                    cmd.command = 'l';
+                    cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                }
+                return cmd;
+              },
+          'q': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                cmd.ctlpt1 = new pathparser.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+                return cmd;
+              },
+          'Q': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                cmd.ctlpt1 = new pathparser.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+                if ((cmdcode === 'Q')||(cmdcode === 'T')) {
+                    cmd.command = (cmdcode==='Q'?'q':'t');
+                    cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                }
+                return cmd;
+              },
+          'c': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                cmd.ctlpt1 = new pathparser.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+                cmd.ctlpt2 = new pathparser.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
+                return cmd;
+              },
+          'C': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+                cmd.ctlpt1 = new pathparser.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+                cmd.ctlpt2 = new pathparser.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
+                if (cmdcode === 'C') {
+                    cmd.command = 'c';
+                    cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.ctlpt2.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                }
+                return cmd;
+              },
+          'z': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = new pathparser.Command('z');
+                return cmd;
+              },
+          'default': function(cmdList, revCmdList, icmd,  cmdcode) { return null; }
+  };
+  pathparser.addCmdCreationRules = function(ruleDictionnary) {
+      for (var property in ruleDictionnary) {
+        if (ruleDictionnary.hasOwnProperty(property)) {
+            pathparser.cmdCreationRules[property] = ruleDictionnary[property];
+            commands += property;
+        }
+      }         
+  };
+  
+  // cmdList is obtained by calling  svg_parse_path on a path data    
+  pathparser.fullrelativePathCmdList = function (cmdList) {
+      // transform the path data to use only relative commands
+      var relCmdList = new pathparser.CmdList(),
+          crtPt = { },
+          cmd = null,
+          crtcmdcode,
+          icmd = 0,
+          len = cmdList.cmd.length;
+      crtPt.x = cmdList.cmd[0].target.x;
+      crtPt.y = cmdList.cmd[0].target.y;
+      while (len > icmd) {
+          // pour chaque commande passer en relatif et calculer le nouveau point courant
+          crtcmdcode = cmdList.cmd[icmd].command;
+          var token = pathparser.cmdCreationRules[crtcmdcode] || pathparser.cmdCreationRules["default"];
+          if (token) {
+            cmd = token(cmdList, relCmdList, icmd, crtcmdcode);
+            if (cmd)  {  relCmdList.cmd.push(cmd); cmd = null; }
+          }
+          icmd += 1;
+      }
+      return relCmdList;
+  };
+  pathparser.Point = function (x, y) {
+      this.x = x;
+      this.y = y;
+      this.translate = function (dx, dy) {
+          this.x += dx;
+          this.y += dy;
+      };
+  };
+  pathparser.CmdList = function () {
+      this.cmd = [];
+      var simpleReverse =   function(i, cmd, commandi) {
+                    var pt = new pathparser.Point(-1 * commandi.target.x, -1 * commandi.target.y);
+                    cmd.target = pt;
+                  };
+      var qortReverse =  function(i, cmd, commandi) {
+                    var target = new pathparser.Point(commandi.target.x, commandi.target.y);
+                    cmd.ctlpt1 = new pathparser.Point(commandi.ctlpt1.x - target.x, commandi.ctlpt1.y - target.y);
+                    cmd.target = new pathparser.Point(-1 * target.x, -1 * target.y);
+                    };
+      this.reverseRules = {
+              'M': simpleReverse,
+              'h': function(i, cmd, commandi) {
+                    cmd.d = -1 * commandi.d;
+                  },
+              'v': function(i, cmd, commandi) {
+                    cmd.d = -1 * commandi.d;
+                  },
+              'l': simpleReverse,
+              'c': function(i, cmd, commandi) {
+                    var target = new pathparser.Point(commandi.target.x, commandi.target.y);
+                    cmd.ctlpt1 = new pathparser.Point(commandi.ctlpt2.x - target.x, commandi.ctlpt2.y - target.y);
+                    cmd.ctlpt2 = new pathparser.Point(commandi.ctlpt1.x - target.x, commandi.ctlpt1.y - target.y);
+                    cmd.target = new pathparser.Point(-1 * target.x, -1 * target.y);
+                  },
+              'q': qortReverse, // q or t
+              't': qortReverse
+              };
+      this.reverse = function () {
+          // works only with relative commands, except the M
+          // T2D2 process all the possible commands
+          var revCmdList = new pathparser.CmdList(),
+              i,
+              cmd,
+              pt,
+              target;
+          for (i = this.cmd.length - 1; i >= 0; i -= 1) {
+              cmd = new pathparser.Command(this.cmd[i].command);
+              var rule = this.reverseRules[cmd];
+              rule(i, cmd, this.cmd[i]);
+              revCmdList.push(cmd);
+          }
+          return revCmdList;
+      };
+      this.push = function (cmd) {
+          this.cmd.push(cmd);
+      };
+      this.toString = function () {
+          // T2D2 process all the possible commands
+          var i = 0,
+              str = "";
+          while (this.cmd.length > i) {
+              str += this.cmd[i].toString();
+              i += 1;
+          }
+          return str;
+      };
+  };
+ // parsing path ; source inspired from canvg library
+  // T2D2 join the author
+  // T2D2 to complete for the A T and S commands
+  // T2D2 check for the following problem:
+  //  possible that doesn't work if the id of the chunk contains a cmd code and if a chunk contains a chunk
+  // recursivity and circularity of the chunk functionality must be analyzed
+  pathparser.svg_parse_path = function (attribute_content, parser) {
+      var d = attribute_content,
+          cmdList = new pathparser.CmdList(),
+          pp;
+      if (existy(parser))
+        pp = this.PathParser = parser; 
+      else
+        pp = this.PathParser = new pathPreProcess(pathparser, d); 
+      pp.reset();
+      while (!pp.isEnd()) {
+          pp.nextCommand();
+          pathparser.ParseToken[pp.command](pp, cmdList);
+      }
+      return cmdList;
+  };
+  // T2D2 I need to understand the following lines (inspired from code of other modules)
+  if (typeof define === "function" && define.amd) {
+      define(pathparser);
+  } else if (typeof module === "object" && module.exports) {
+      module.exports = pathparser;
+  } else {
+      this.pathparser = pathparser;
+  }
 }).call(this);
