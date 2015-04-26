@@ -61,7 +61,7 @@
       }
       
       superpath.ParseToken[superpath.OPENCHUNK] = function(pp, cmdList) {
-                  var cmd = new superpath.Command(pp.command);
+                  var cmd = new pathparser.Command(pp.command);
                   var idsubpath = getSubpathRefId(pp);
                   var descriptionsubpath = getSubpathDesc(pp);
                   cmd.chunkName = idsubpath;
@@ -73,7 +73,7 @@
       };
       superpath.ParseToken[superpath.REVERSEDREF] =
       superpath.ParseToken[superpath.DIRECTREF] = function(pp, cmdList) {
-                  var cmd = new superpath.Command(pp.command);
+                  var cmd = new pathparser.Command(pp.command);
                   cmd.ref = getSubpathRefId(pp);
                   cmdList.push(cmd);
       };
@@ -168,7 +168,9 @@
           }
           return someChange;
       }
+      /* T2D2 check if buildCmdList, buildReverseCmdList and strDescription must be in ExpandableSVGPathParser or here */
       function buildCmdList(desc, startingPt) {
+          // T2D2 check: the following fake M seems to be a bad trace of a previous implementation
           // add a fake M command to resolve the absolute commands againt a reference point
           var data = "M" + startingPt.x + "," + startingPt.y + desc,
               cmdList = pathparser.svg_parse_path(data),
@@ -181,6 +183,7 @@
           var rList = list.reverse();
           return rList;
       }
+      /* T2D2 seem to be deeply correlated with stringify */
       function strDescription(cmdList) {
           var str = "",
               i,
@@ -218,7 +221,7 @@
               if ((cmd.command === superpath.OPENCHUNK) && (existy(cmd.crtPt))) {
                   chunkName = cmd.chunkName;
                   chunk = superpath.chunks[chunkName] = {};
-                  chunk.nam = chunkName;
+                  chunk.name = chunkName;
                   // T2D2 here it's possible that cmd.crtPt isn't defined; must add processing of that case
                   chunk.description = buildCmdList(cmd.strDescription, cmd.crtPt);
                   // list of commands
@@ -236,132 +239,11 @@
           return someChange;
       }
 
-      function stringifyParameters(cmd) {
-          var str = "";
-          if (existy(cmd.ctlpt1)) { str += cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " "; }
-          if (existy(cmd.ctlpt2)) { str += cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " "; }
-          if (existy(cmd.target)) { str += cmd.target.x + "," + cmd.target.y; }
-          return str;
-      }
-      
-      // associated a command letter with a function to stringify such command with his attributes
-      superpath.TokensToString = { 
-              "h"                  : function() {  return this.command + this.d; },
-              "v"                  : function() {  return this.command + this.d; },
-              "H"                  : function() {  return this.command + this.d; },
-              "V"                  : function() {  return this.command + this.d; },
-              "z"                  : function() {  return this.command + stringifyParameters(this); },
-              "default"            : function() {  return this.command + stringifyParameters(this); }
-              };
       // extensions
+      superpath.TokensToString = {};
       superpath.TokensToString[superpath.OPENCHUNK] = function() {  return this.command + this.chunkName + superpath.SEPARATOR + this.strDescription + superpath.ENDCHUNK; };
       superpath.TokensToString[superpath.DIRECTREF] = function() {  return this.command + this.ref + superpath.SEPARATOR; };
       superpath.TokensToString[superpath.REVERSEDREF] = function() {  return this.command + this.ref + superpath.SEPARATOR; };
-      superpath.Command = function (letter) {
-          var cmd = { };
-          cmd.command = letter;
-          cmd.toString = superpath.TokensToString[cmd.command] || superpath.TokensToString["default"];
-          return cmd;
-      };
-
-      function createsimplecommand(crtcmdcode, x, y) {
-          var cmd = new superpath.Command(crtcmdcode), // m? or M
-              pt = new superpath.Point(x, y); 
-          cmd.crtPt = new superpath.Point(pt.x, pt.y);
-          cmd.target = pt;
-          return cmd;
-      }
-      var simpleCommand = function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                    return cmd;
-                  }; 
-      // table of rules for the creation of a command list from the codes
-      superpath.cmdCreationRules = {
-              'v': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d); 
-                    cmd.d = cmd.target.y;
-                    return cmd;
-                  },
-              'V': function(cmdList, revCmdList, icmd,  cmdcode) {
-                    var cmd = createsimplecommand(cmdcode, revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d);
-                    if (crtcmdcode === 'V') {
-                        cmd.command = 'v';
-                        cmd.target.y -= revCmdList.cmd[icmd - 1].crtPt.y;
-                    }
-                    cmd.d = cmd.target.y;
-                    return cmd;
-                  },
-              'h': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].d, revCmdList.cmd[icmd - 1].crtPt.y);
-                    cmd.d = cmd.target.x;
-                    return cmd;
-                  },
-              'H': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].d, revCmdList.cmd[icmd - 1].crtPt.y);
-                    if (cmdcode === 'H') {
-                        cmd.command = 'h';
-                        cmd.target.x -= revCmdList.cmd[icmd - 1].crtPt.x;
-                    }
-                    cmd.d = cmd.target.x;
-                    return cmd;
-                  },
-              'm': simpleCommand, // T2D2 check for relative move
-              'M': simpleCommand,
-              'l': simpleCommand,
-              'L': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                    if (cmdcode === 'L') {
-                        cmd.command = 'l';
-                        cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                    }
-                    return cmd;
-                  },
-              'q': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                    cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                    return cmd;
-                  },
-              'Q': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                    cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                    if ((cmdcode === 'Q')||(cmdcode === 'T')) {
-                        cmd.command = (cmdcode==='Q'?'q':'t');
-                        cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                        cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                    }
-                    return cmd;
-                  },
-              'c': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                    cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                    cmd.ctlpt2 = new superpath.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
-                    return cmd;
-                  },
-              'C': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                    cmd.ctlpt1 = new superpath.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                    cmd.ctlpt2 = new superpath.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
-                    if (cmdcode === 'C') {
-                        cmd.command = 'c';
-                        cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                        cmd.ctlpt2.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                        cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
-                    }
-                    return cmd;
-                  },
-              'z': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                    var cmd = new superpath.Command('z');
-                    return cmd;
-                  },
-              'default': function(cmdList, revCmdList, icmd,  cmdcode) { return null; }
-      };
-      // extension
-      superpath.cmdCreationRules[superpath.OPENCHUNK] = function(cmdList, revCmdList, icmd, cmdcode) { 
-                    var cmd = new superpath.Command(superpath.OPENCHUNK);
-                    cmd.chunkName = cmdList.cmd[icmd].chunkName;
-                    cmd.strDescription = cmdList.cmd[icmd].strDescription;
-                    return cmd;
-                  };
       
       superpath.Point = function (x, y) {
           this.x = x;
@@ -386,8 +268,10 @@
           return null;
       };
       /*  extension to be checked */
+      // extension
+      superpath.cmdCreationRules = {};
       superpath.cmdCreationRules[superpath.OPENCHUNK] = function(cmdList, revCmdList, icmd, cmdcode) { 
-                    var cmd = new superpath.Command(superpath.OPENCHUNK);
+                    var cmd = new pathparser.Command(superpath.OPENCHUNK);
                     cmd.chunkName = cmdList.cmd[icmd].chunkName;
                     cmd.strDescription = cmdList.cmd[icmd].strDescription;
                     return cmd;
@@ -631,8 +515,10 @@
               pathDRefList = [],
               pathIRefList = [],
               someChange = false;
+          /* T2D2 group the three following calls to maintain a coherent view of the extensions */
           pathparser.addCommands(superpath.ParseToken);
           pathparser.addCmdCreationRules(superpath.cmdCreationRules);
+          pathparser.addStringifier(superpath.TokensToString);
           buildTablesOfPathUsingChunk(pathlist, pathDefinerList, pathDRefList, pathIRefList);
           do {
               // try to process the chunk definitions and resolve the references until nothing appends
