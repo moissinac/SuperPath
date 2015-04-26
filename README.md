@@ -47,3 +47,5 @@ insert a copy of the chunk with id idOfMyChunk  (a | must follow the id; it's th
 See http://moissinac.github.io/SuperPath/ for samples (which are also in the Samples directory of the repositoty)
 
 See https://github.com/moissinac/SuperPath/wiki/In-progress-new-implementation-of-SuperPath for the specification and some known issues
+
+<a href="https://www.bithound.io/github/moissinac/SuperPath"><img src="https://www.bithound.io/github/moissinac/SuperPath/badges/score.svg" alt="bitHound Score" /></a>
