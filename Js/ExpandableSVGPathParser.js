@@ -20,8 +20,7 @@
    *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
    *
    *
-  */
-  
+  */ 
   
 (function () {
 //  "use strict";
@@ -330,40 +329,6 @@
   function existy(x) {
       return (x !== null) && (x !== undefined);
   }
-  function buildCmdList(desc, startingPt) {
-      // T2D2 check: the following fake M seems to be a bad trace of a previous implementation
-      // add a fake M command to resolve the absolute commands againt a reference point
-      var data = "M" + startingPt.x + "," + startingPt.y + desc,
-          cmdList = pathparser.svg_parse_path(data),
-          relCmdList = pathparser.fullrelativePathCmdList(cmdList);
-      relCmdList.cmd = relCmdList.cmd.slice(1);
-      // remove the fake starting 'M' command
-      return relCmdList;
-  }
-  function buildReversedCmdList(list) {
-      var rList = list.reverse();
-      return rList;
-  }
-  function strDescription(cmdList) {
-      var str = "",
-          i,
-          cmd;
-      for (i = 0; cmdList.cmd.length > i; i += 1) {
-          cmd = cmdList.cmd[i];
-          switch (cmd.command) {
-          case 'l':
-              str += cmd.command + cmd.target.x + "," + cmd.target.y;
-              break;
-          case 'c':
-              str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " " + cmd.target.x + "," + cmd.target.y;
-              break;
-          case 'q': case 't':
-              str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.target.x + "," + cmd.target.y;
-              break;
-          }
-      }
-      return str;
-  }
 
   function stringifyParameters(cmd) {
       var str = "";
@@ -373,7 +338,7 @@
       return str;
   }
   
-  // associated a command letter with a function to stringify such command with his attributes
+  // associate a command letter with a function to stringify such command with his attributes
   pathparser.TokensToString = { 
           "h"                  : function() {  return this.command + this.d; },
           "v"                  : function() {  return this.command + this.d; },
@@ -488,7 +453,13 @@
         }
       }         
   };
-  
+  pathparser.addStringifier =  function(tokenDictionnary) {
+      for (var property in tokenDictionnary) {
+        if (tokenDictionnary.hasOwnProperty(property)) {
+            pathparser.TokensToString[property] = tokenDictionnary[property];
+        }
+      }         
+  };
   // cmdList is obtained by calling  svg_parse_path on a path data    
   pathparser.fullrelativePathCmdList = function (cmdList) {
       // transform the path data to use only relative commands
