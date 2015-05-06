@@ -36,8 +36,8 @@
           REVERSEDREF: "!"
       };
       
-      // extensions
       superpath.ParseToken = {};
+
       function getSubpathRefId(pp) {
           var id = "";
           do {
@@ -269,7 +269,36 @@
                     return cmd;
                   };
       /* end of: extension to be checked */
+      /* start of code to manage modification oranimation of a subpath */
+      /*
+      var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
       
+      var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'childList') {
+            var list_values = [].slice.call(list.children)
+                .map( function(node) { return node.innerHTML; })
+                .filter( function(s) {
+                  if (s === '<br />') {
+                    return false;
+                  }
+                  else {
+                    return true;
+                  }
+            });
+            console.log(list_values);
+          }
+        });
+      });
+      
+      observer.observe(list, {
+        attributes: true,
+        childList: true,
+        characterData: true
+      });
+      */
+      /* end of code to manage modification or animation of a subpath */
+
      // parsing path ; source inspired from canvg library
       // T2D2 join the author
       // T2D2 to complete for the A T and S commands
@@ -339,9 +368,9 @@
        */
       superpath.expandPaths = function () {
           var pathlist = document.getElementsByTagName("path"),
-              pathDefinerList = [],
-              pathDRefList = [],
-              pathIRefList = [],
+              pathDefinerList = [],   // list of path used to define subpath
+              pathDRefList = [],    // list of path using a direct reference to a subpath
+              pathIRefList = [],    // list of path using an inverse reference to a subpath
               someChange = false;
           /* T2D2 group the three following calls to maintain a coherent view of the extensions */
           pathparser.addCommands(superpath.ParseToken);
