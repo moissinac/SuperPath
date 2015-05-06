@@ -5,32 +5,83 @@
    *            Copyright (c) Telecom ParisTech 2015
    *                    All rights reserved
    *
-   *  SVGPathParser is free software; you can redistribute it and/or modify
+   *  ExpandableSVGPathParser is free software; you can redistribute it and/or modify
    *  it under the terms of the GNU Lesser General Public License as published by
    *  the Free Software Foundation; either version 2, or (at your option)
    *  any later version.
-   *
    *  SVG Path Parser is distributed in the hope that it will be useful,
    *  but WITHOUT ANY WARRANTY; without even the implied warranty of
    *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    *  GNU Lesser General Public License for more details.
-   *
    *  You should have received a copy of the GNU Lesser General Public
    *  License along with this library; see the file COPYING.  If not, write to
    *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
-   *
    *
   */ 
   
 (function () {
 //  "use strict";
+   function buildDictionnary(dictionnary, addedDict) {   
+              for (var property in addedDict) {
+                if (addedDict.hasOwnProperty(property)) {
+                    dictionnary[property] = addedDict[property];
+                    commands += property;
+                }
+              }
+          };
   var pathparser = {
-      version: "0.1.0"
-      };
+      version: "0.1.6",
+      ParseToken: {}, // associative table which associate each command with a parse function; by default, is the fusion of ParseAbsToken and ParseRelToken
+      TokensToString: {},
+      Command: function(letter) {},
+      Point : function (x, y) {},
+      CmdList: function () {},
+      addCommands: function(addedDict) {   buildDictionnary(pathparser.ParseToken, addedDict)          },
+      addCmdCreationRules: function(addedDict) {   buildDictionnary(cmdCreationRules, addedDict)          },
+      addStringifier:  function(addedDict) {   buildDictionnary(pathparser.TokensToString, addedDict)          },
+      fullrelativePathCmdList: function (cmdList) {  },
+      svg_parse_path: function (attribute_content, parser) { }
+  };
   var abscommands = "MZLHVCSQTA",
       relcommands = "mzlhvcsqta",
       commands = abscommands + relcommands;
+
+  pathparser.Point = function (x, y) {
+      this.x = x;
+      this.y = y;
+      this.translate = function (dx, dy) {
+          this.x += dx;
+          this.y += dy;
+      };
+  };
+  function stringifyParameters(cmd) {
+      var str = "";
+      if (existy(cmd.d)) { str += cmd.d + " "; }
+      if (existy(cmd.ctlpt1)) { str += cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " "; }
+      if (existy(cmd.ctlpt2)) { str += cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " "; }
+      if (existy(cmd.target)) { str += cmd.target.x + "," + cmd.target.y; }
+      return str;
+  }
   
+  function stringifyCmd() {  return this.command + stringifyParameters(this); }
+  
+  // associate a command letter with a function to stringify such command with his attributes
+  pathparser.TokensToString = { 
+          "h"                  : stringifyCmd,
+          "v"                  : stringifyCmd,
+          "H"                  : stringifyCmd,
+          "V"                  : stringifyCmd,
+          "z"                  : stringifyCmd,
+          "default"            : stringifyCmd,
+          };
+  pathparser.Command = function (letter) {
+      var cmd = { 
+        command: letter,
+        toString : pathparser.TokensToString[letter] || pathparser.TokensToString["default"]
+      };
+      return cmd;
+  };
+
   // parsing functions to build internal command representation from each parsed command
   var parseM = function(pp, cmdList) {
         var p = pp.getAsCurrentPoint(pp.isRelativeCommand());
@@ -171,7 +222,6 @@
               do {
                   cmd = new pathparser.Command(pp.command);
                   cmd.current = pp.current;
-                  
                   // T2D2 cntrl = reflection of the control point on the previous command relative to the cuurent point or current point if the previous command isn't Q,q,T or t
                   cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
                   cmd.ctlpt1 = cntrl;
@@ -194,23 +244,22 @@
                   cmd.current = pp.current;
                   cmdList.push(cmd);
               } while (!pp.isCommandOrEnd());
-              // T2D2 verify this strange while
   };
 
   // defines parsing process associated to each command
-  pathparser.ParseAbsToken = { // associative table which associate each absolute command with a parse function
+  var ParseAbsToken = { // associative table which associate each absolute command with a parse function
           'M': parseM,
           'L': parseL,
           'H': parseH,
           'V': parseV,
           'C': parseC,
-          'S': parseS,
+          'S': parseS, // T2D2
           'Q': parseQ,
-          'T': parseT,// T2D2
+          'T': parseT, // T2D2
           'A': parseA, // T2D2
           'Z': parseZ
   };
-  pathparser.ParseRelToken = { // associative table which associate each relative command with a parse function
+  var ParseRelToken = { // associative table which associate each relative command with a parse function
           'm': parseM,
           'l': parseL,
           'h': parseH,
@@ -222,22 +271,12 @@
           'a': parseA,
           'z': parseZ
   };
-  pathparser.ParseToken = {}; // associative table which associate each command with a parse function; by default, is the fusion of ParseAbsToken and ParseRelToken
-  pathparser.addCommands = function(cmdDictionnary) {
-      for (var property in cmdDictionnary) {
-        if (cmdDictionnary.hasOwnProperty(property)) {
-            pathparser.ParseToken[property] = cmdDictionnary[property];
-            commands += property;
-        }
-      }
-  };
-  pathparser.addCommands(pathparser.ParseAbsToken);
-  pathparser.addCommands(pathparser.ParseRelToken);
+  pathparser.addCommands(ParseAbsToken);
+  pathparser.addCommands(ParseRelToken);
 
   
   function PathPreProcess(pathparser, d) {
       var regex = new RegExp("([" + commands + "])([" + commands + "])", "gm");
-      // T2D2: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
       this.compressSpaces = function (s) {
           return s.replace(/[\s\r\t\n]+/gm, ' ');
       };
@@ -269,25 +308,17 @@
           this.points = [];
           this.angles = [];
       };
-      this.isEnd = function () {
-          return this.i >= this.tokens.length - 1;
-      };
+      this.isEnd = function () {          return this.i >= this.tokens.length - 1;  };
       this.isCommandOrEnd = function () {
-          if (this.isEnd()) {
-              return true;
-          }
+          if (this.isEnd()) return true;
           return this.tokens[this.i + 1].match(regex) !== null;
       };
-      this.isRelativeCommand = function () {
-          return (relcommands.indexOf(this.command) !== -1);
-      };
+      this.isRelativeCommand = function () {          return (relcommands.indexOf(this.command) !== -1);      };
       this.getToken = function () {
           this.i += 1;
           return this.tokens[this.i];
       };
-      this.getScalar = function () {
-          return parseFloat(this.getToken());
-      };
+      this.getScalar = function () {          return parseFloat(this.getToken()); };
       this.nextCommand = function () {
           this.previousCommand = this.command;
           this.command = this.getToken();
@@ -330,30 +361,6 @@
       return (x !== null) && (x !== undefined);
   }
 
-  function stringifyParameters(cmd) {
-      var str = "";
-      if (existy(cmd.ctlpt1)) { str += cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " "; }
-      if (existy(cmd.ctlpt2)) { str += cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " "; }
-      if (existy(cmd.target)) { str += cmd.target.x + "," + cmd.target.y; }
-      return str;
-  }
-  
-  // associate a command letter with a function to stringify such command with his attributes
-  pathparser.TokensToString = { 
-          "h"                  : function() {  return this.command + this.d; },
-          "v"                  : function() {  return this.command + this.d; },
-          "H"                  : function() {  return this.command + this.d; },
-          "V"                  : function() {  return this.command + this.d; },
-          "z"                  : function() {  return this.command + stringifyParameters(this); },
-          "default"            : function() {  return this.command + stringifyParameters(this); }
-          };
-  pathparser.Command = function (letter) {
-      var cmd = { };
-      cmd.command = letter;
-      cmd.toString = pathparser.TokensToString[cmd.command] || pathparser.TokensToString["default"];
-      return cmd;
-  };
-
   function createsimplecommand(crtcmdcode, x, y) {
       var cmd = new pathparser.Command(crtcmdcode), // m? or M
           pt = new pathparser.Point(x, y); 
@@ -365,8 +372,8 @@
                 var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
                 return cmd;
               }; 
-  // table of rules for the creation of a command list from the codes
-  pathparser.cmdCreationRules = {
+  // table of rules for the creation of a command list from the command codes
+  var cmdCreationRules = {
           'v': function(cmdList, revCmdList, icmd,  cmdcode) { 
                 var cmd = createsimplecommand(cmdcode, revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d); 
                 cmd.d = cmd.target.y;
@@ -374,7 +381,7 @@
               },
           'V': function(cmdList, revCmdList, icmd,  cmdcode) {
                 var cmd = createsimplecommand(cmdcode, revCmdList.cmd[icmd - 1].crtPt.x, cmdList.cmd[icmd].d);
-                if (crtcmdcode === 'V') {
+                if (cmdcode === 'V') {
                     cmd.command = 'v';
                     cmd.target.y -= revCmdList.cmd[icmd - 1].crtPt.y;
                 }
@@ -445,52 +452,6 @@
               },
           'default': function(cmdList, revCmdList, icmd,  cmdcode) { return null; }
   };
-  pathparser.addCmdCreationRules = function(ruleDictionnary) {
-      for (var property in ruleDictionnary) {
-        if (ruleDictionnary.hasOwnProperty(property)) {
-            pathparser.cmdCreationRules[property] = ruleDictionnary[property];
-            commands += property;
-        }
-      }         
-  };
-  pathparser.addStringifier =  function(tokenDictionnary) {
-      for (var property in tokenDictionnary) {
-        if (tokenDictionnary.hasOwnProperty(property)) {
-            pathparser.TokensToString[property] = tokenDictionnary[property];
-        }
-      }         
-  };
-  // cmdList is obtained by calling  svg_parse_path on a path data    
-  pathparser.fullrelativePathCmdList = function (cmdList) {
-      // transform the path data to use only relative commands
-      var relCmdList = new pathparser.CmdList(),
-          crtPt = { },
-          cmd = null,
-          crtcmdcode,
-          icmd = 0,
-          len = cmdList.cmd.length;
-      crtPt.x = cmdList.cmd[0].target.x;
-      crtPt.y = cmdList.cmd[0].target.y;
-      while (len > icmd) {
-          // pour chaque commande passer en relatif et calculer le nouveau point courant
-          crtcmdcode = cmdList.cmd[icmd].command;
-          var token = pathparser.cmdCreationRules[crtcmdcode] || pathparser.cmdCreationRules["default"];
-          if (token) {
-            cmd = token(cmdList, relCmdList, icmd, crtcmdcode);
-            if (cmd)  {  relCmdList.cmd.push(cmd); cmd = null; }
-          }
-          icmd += 1;
-      }
-      return relCmdList;
-  };
-  pathparser.Point = function (x, y) {
-      this.x = x;
-      this.y = y;
-      this.translate = function (dx, dy) {
-          this.x += dx;
-          this.y += dy;
-      };
-  };
   pathparser.CmdList = function () {
       this.cmd = [];
       var simpleReverse =   function(i, cmd, commandi) {
@@ -522,7 +483,6 @@
               };
       this.reverse = function () {
           // works only with relative commands, except the M
-          // T2D2 process all the possible commands
           var revCmdList = new pathparser.CmdList(),
               i,
               cmd,
@@ -536,26 +496,38 @@
           }
           return revCmdList;
       };
-      this.push = function (cmd) {
-          this.cmd.push(cmd);
-      };
+      this.push = function (cmd) {   this.cmd.push(cmd);  };
       this.toString = function () {
-          // T2D2 process all the possible commands
           var i = 0,
               str = "";
-          while (this.cmd.length > i) {
-              str += this.cmd[i].toString();
-              i += 1;
-          }
+          for (i=0; this.cmd.length > i; i += 1) {  str += this.cmd[i].toString();          }
           return str;
       };
+  };    
+  pathparser.fullrelativePathCmdList = function (cmdList) {   // cmdList is obtained by calling  svg_parse_path on a path data
+      // transform the path data to use only relative commands
+      var relCmdList = new pathparser.CmdList(),
+          crtPt = { x: 0, y:0 },
+          cmd = null,
+          crtcmdcode,
+          icmd = 0,
+          len = cmdList.cmd.length;
+      crtPt.x = cmdList.cmd[0].target.x;
+      crtPt.y = cmdList.cmd[0].target.y;
+      while (len > icmd) {
+          // transform absolute commands in relative ones and updates current point
+          crtcmdcode = cmdList.cmd[icmd].command;
+          var token = cmdCreationRules[crtcmdcode] || cmdCreationRules["default"];
+          if (token) {
+            cmd = token(cmdList, relCmdList, icmd, crtcmdcode);
+            if (cmd)  {  relCmdList.cmd.push(cmd); cmd = null; }
+          }
+          icmd += 1;
+      }
+      return relCmdList;
   };
- // parsing path ; source inspired from canvg library
-  // T2D2 join the author
-  // T2D2 to complete for the A T and S commands
-  // T2D2 check for the following problem:
-  //  possible that doesn't work if the id of the chunk contains a cmd code and if a chunk contains a chunk
-  // recursivity and circularity of the chunk functionality must be analyzed
+  // parsing path ; source initialy inspired from canvg library and highly refactored
+  // can receive another parser than the internal
   pathparser.svg_parse_path = function (attribute_content, parser) {
       var d = attribute_content,
           cmdList = new pathparser.CmdList(),
