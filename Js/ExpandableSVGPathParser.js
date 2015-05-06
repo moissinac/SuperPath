@@ -30,7 +30,7 @@
               }
           };
   var pathparser = {
-      version: "0.1.9",
+      version: "0.1.10",
       ParseToken: {}, // associative table which associate each command with a parse function; by default, is the fusion of ParseAbsToken and ParseRelToken
       TokensToString: {},
       Command: function(letter) {},
