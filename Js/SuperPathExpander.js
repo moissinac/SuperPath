@@ -28,7 +28,7 @@
   (function () {
       "use strict";
       var superpath = {
-          version: "0.1.11",
+          version: "0.1.1",
           SEPARATOR: "|", // with the current parser, can be all chars but other commands and space
           OPENCHUNK: "(",
           ENDCHUNK: ")",
@@ -436,17 +436,19 @@
                     commands += property;
                 }
               }
-          };
+          }
   var pathparser = {
-      version: "0.1.0",
+      version: "0.1.14",
       ParseToken: {}, // associative table which associate each command with a parse function; by default, is the fusion of ParseAbsToken and ParseRelToken
       TokensToString: {},
       Command: function(letter) {},
       Point : function (x, y) {},
       CmdList: function () {},
-      addCommands: function(addedDict) {   buildDictionnary(pathparser.ParseToken, addedDict)          },
-      addCmdCreationRules: function(addedDict) {   buildDictionnary(cmdCreationRules, addedDict)          },
-      addStringifier:  function(addedDict) {   buildDictionnary(pathparser.TokensToString, addedDict)          }
+      addCommands: function(addedDict) {   buildDictionnary(pathparser.ParseToken, addedDict);          },
+      addCmdCreationRules: function(addedDict) {   buildDictionnary(cmdCreationRules, addedDict);          },
+      addStringifier:  function(addedDict) {   buildDictionnary(pathparser.TokensToString, addedDict);          },
+      fullrelativePathCmdList: function (cmdList) {  },
+      svg_parse_path: function (attribute_content, parser) { }
   };
   var abscommands = "MZLHVCSQTA",
       relcommands = "mzlhvcsqta",
@@ -628,7 +630,6 @@
               do {
                   cmd = new pathparser.Command(pp.command);
                   cmd.current = pp.current;
-                  
                   // T2D2 cntrl = reflection of the control point on the previous command relative to the cuurent point or current point if the previous command isn't Q,q,T or t
                   cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
                   cmd.ctlpt1 = cntrl;
@@ -651,7 +652,6 @@
                   cmd.current = pp.current;
                   cmdList.push(cmd);
               } while (!pp.isCommandOrEnd());
-              // T2D2 verify this strange while
   };
 
   // defines parsing process associated to each command
@@ -685,7 +685,6 @@
   
   function PathPreProcess(pathparser, d) {
       var regex = new RegExp("([" + commands + "])([" + commands + "])", "gm");
-      // T2D2: convert to real lexer based on http://www.w3.org/TR/SVG11/paths.html#PathDataBNF
       this.compressSpaces = function (s) {
           return s.replace(/[\s\r\t\n]+/gm, ' ');
       };
@@ -912,9 +911,8 @@
           for (i=0; this.cmd.length > i; i += 1) {  str += this.cmd[i].toString();          }
           return str;
       };
-  };
-  // cmdList is obtained by calling  svg_parse_path on a path data    
-  pathparser.fullrelativePathCmdList = function (cmdList) {
+  };    
+  pathparser.fullrelativePathCmdList = function (cmdList) {   // cmdList is obtained by calling  svg_parse_path on a path data
       // transform the path data to use only relative commands
       var relCmdList = new pathparser.CmdList(),
           crtPt = { x: 0, y:0 },
@@ -925,7 +923,7 @@
       crtPt.x = cmdList.cmd[0].target.x;
       crtPt.y = cmdList.cmd[0].target.y;
       while (len > icmd) {
-          // pour chaque commande passer en relatif et calculer le nouveau point courant
+          // transform absolute commands in relative ones and updates current point
           crtcmdcode = cmdList.cmd[icmd].command;
           var token = cmdCreationRules[crtcmdcode] || cmdCreationRules["default"];
           if (token) {
@@ -937,10 +935,7 @@
       return relCmdList;
   };
   // parsing path ; source initialy inspired from canvg library and highly refactored
-  // T2D2 check for the following possible problem:
-  //  doesn't work if the id of the chunk contains a cmd code and if a chunk contains a chunk
-  // recursivity and circularity of the chunk functionality must be analyzed
-  // generally used withour the parser parameter and using the default path preprocessing
+  // can receive another parser than the internal
   pathparser.svg_parse_path = function (attribute_content, parser) {
       var d = attribute_content,
           cmdList = new pathparser.CmdList(),
