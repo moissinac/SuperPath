@@ -2,7 +2,9 @@
   "ignore": [
     "Js/SuperPathExpander.js" ,
     "Js/SuperPathExpander.min.js",     
-    "Js/SuperPathProcessor.js" ,
+    "Js/SVGSuperPathParser.min.js",     
+    "Js/ExpandableSVGPathParser.min.js",     
+    "Js/SuperPathProcessor.js" ,  // old temporary version
     "Js/SuperPathProcessor.min.js"     
   ]
 }
