@@ -5,6 +5,8 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-uglify');
   // Load the plugin that provides the "concat" task.
   grunt.loadNpmTasks('grunt-contrib-concat');
+  // Load the plugin that provides the "watch" task.
+  grunt.loadNpmTasks('grunt-contrib-watch');
   // Load the plugin that provides the "bump" task to automatically manage version number
   grunt.loadNpmTasks('grunt-bump');
   // Load the plugin that provides the "git" task to automatically update the code in a git repository
@@ -12,6 +14,7 @@ module.exports = function(grunt) {
 
   // Project configuration.
   grunt.initConfig({
+    srcFiles: ["SVGSuperPathParser.js", "ExpandableSVGPathParser.js"],
     uglify: {
       superpathcodeminify: {
         src: 'SVGSuperPathParser.js',
@@ -22,8 +25,8 @@ module.exports = function(grunt) {
         dest: 'ExpandableSVGPathParser.min.js'
       },
       pathprocessorminify: {
-        src: 'SuperPathProcessor.js',
-        dest: 'SuperPathProcessor.min.js'
+        src: 'SuperPathExpander.js',
+        dest: 'SuperPathExpander.min.js'
       }
     },
     git: {
@@ -34,9 +37,8 @@ module.exports = function(grunt) {
                       'ExpandableSVGPathParser.min.js',
                       'SuperPathExpander.js',
                       'SuperPathExpander.min.js',
-                      'SuperPathExpander.js',
-                      'SuperPathExpander.min.js', 
-                      'SuperPathProcessor.min.js'
+                      'SVGSuperPathParser.js',
+                      'SVGSuperPathParser.min.js', 
                       ],
         updateConfigs: [],
         commit: true,
@@ -45,8 +47,8 @@ module.exports = function(grunt) {
                       'ExpandableSVGPathParser.min.js',
                       'SuperPathExpander.js',
                       'SuperPathExpander.min.js',
-                      'SuperPathExpander.js',
-                      'SuperPathExpander.min.js', 
+                      'SVGSuperPathParser.js',
+                      'SVGSuperPathParser.min.js', 
                       'gruntfile.js'
                       ],
         createTag: true,
@@ -63,14 +65,20 @@ module.exports = function(grunt) {
     concat: {
         buildexpander: {
             files: {
-              "SuperPathExpander.js": ["SVGSuperPathParser.js", "ExpandableSVGPathParser.js"]
+              "SuperPathExpander.js": "<%= srcFiles %>"
             }
         }
+    },
+    watch: {
+      buildexpander: {
+        files: "<%= srcFiles %>",
+        tasks:  ["concat", "uglify"]
+      }
     },
     all: {}
   });
 
   // Define the default task
-  grunt.registerTask('default', ['all']);
+  grunt.registerTask('default', ['concat', 'watch']);
 };
 
