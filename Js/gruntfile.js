@@ -7,6 +7,8 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-concat');
   // Load the plugin that provides the "bump" task to automatically manage version number
   grunt.loadNpmTasks('grunt-bump');
+  // Load the plugin that provides the "git" task to automatically update the code in a git repository
+  grunt.loadNpmTasks('grunt-git');
 
   // Project configuration.
   grunt.initConfig({
@@ -24,6 +26,8 @@ module.exports = function(grunt) {
         dest: 'SuperPathProcessor.min.js'
       }
     },
+    git: {
+    },
     bump: {
       options: {
         files: ['ExpandableSVGPathParser.js', 
@@ -32,7 +36,6 @@ module.exports = function(grunt) {
                       'SuperPathExpander.min.js',
                       'SuperPathExpander.js',
                       'SuperPathExpander.min.js', 
-                      'SuperPathProcessor.js',
                       'SuperPathProcessor.min.js'
                       ],
         updateConfigs: [],
@@ -44,8 +47,6 @@ module.exports = function(grunt) {
                       'SuperPathExpander.min.js',
                       'SuperPathExpander.js',
                       'SuperPathExpander.min.js', 
-                      'SuperPathProcessor.js',
-                      'SuperPathProcessor.min.js',
                       'gruntfile.js'
                       ],
         createTag: true,
