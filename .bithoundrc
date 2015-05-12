@@ -1,7 +1,7 @@
 {
   "ignore": [
     "Js/SuperPathExpander.js" ,
-    "Js/SuperPathExpander.min.js"     
+    "Js/SuperPathExpander.min.js",     
     "Js/SuperPathProcessor.js" ,
     "Js/SuperPathProcessor.min.js"     
   ]
