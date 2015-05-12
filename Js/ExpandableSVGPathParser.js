@@ -28,17 +28,17 @@
                     commands += property;
                 }
               }
-          };
+          }
   var pathparser = {
-      version: "0.1.12",
+      version: "0.1.14",
       ParseToken: {}, // associative table which associate each command with a parse function; by default, is the fusion of ParseAbsToken and ParseRelToken
       TokensToString: {},
       Command: function(letter) {},
       Point : function (x, y) {},
       CmdList: function () {},
-      addCommands: function(addedDict) {   buildDictionnary(pathparser.ParseToken, addedDict)          },
-      addCmdCreationRules: function(addedDict) {   buildDictionnary(cmdCreationRules, addedDict)          },
-      addStringifier:  function(addedDict) {   buildDictionnary(pathparser.TokensToString, addedDict)          },
+      addCommands: function(addedDict) {   buildDictionnary(pathparser.ParseToken, addedDict);          },
+      addCmdCreationRules: function(addedDict) {   buildDictionnary(cmdCreationRules, addedDict);          },
+      addStringifier:  function(addedDict) {   buildDictionnary(pathparser.TokensToString, addedDict);          },
       fullrelativePathCmdList: function (cmdList) {  },
       svg_parse_path: function (attribute_content, parser) { }
   };
