@@ -183,25 +183,12 @@
           var rList = list.reverse();
           return rList;
       }
-      /* T2D2 seem to be deeply correlated with stringify */
       function strDescription(cmdList) {
           var str = "",
               i,
               cmd;
-          for (i = 0; cmdList.cmd.length > i; i += 1) {
-              cmd = cmdList.cmd[i];
-              switch (cmd.command) {
-              case 'l':
-                  str += cmd.command + cmd.target.x + "," + cmd.target.y;
-                  break;
-              case 'c':
-                  str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " " + cmd.target.x + "," + cmd.target.y;
-                  break;
-              case 'q': case 't':
-                  str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.target.x + "," + cmd.target.y;
-                  break;
-              }
-          }
+          for (i = 0; cmdList.cmd.length > i; i += 1) 
+              str += cmdList.cmd[i].toString();
           return str;
       }
       // take a data path, complete the chunk dictionnary with found chunks, and remove the chunk definition

@@ -183,25 +183,12 @@
           var rList = list.reverse();
           return rList;
       }
-      /* T2D2 seem to be deeply correlated with stringify */
       function strDescription(cmdList) {
           var str = "",
               i,
               cmd;
-          for (i = 0; cmdList.cmd.length > i; i += 1) {
-              cmd = cmdList.cmd[i];
-              switch (cmd.command) {
-              case 'l':
-                  str += cmd.command + cmd.target.x + "," + cmd.target.y;
-                  break;
-              case 'c':
-                  str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " " + cmd.target.x + "," + cmd.target.y;
-                  break;
-              case 'q': case 't':
-                  str += cmd.command + cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " " + cmd.target.x + "," + cmd.target.y;
-                  break;
-              }
-          }
+          for (i = 0; cmdList.cmd.length > i; i += 1) 
+              str += cmdList.cmd[i].toString();
           return str;
       }
       // take a data path, complete the chunk dictionnary with found chunks, and remove the chunk definition
@@ -591,17 +578,26 @@
   };
   var parseS = function(pp, cmdList) {
               var cmd;
-              var p;
-              /*
-              while (!pp.isCommandOrEnd()) {
-              var curr = pp.current;
-              var p1 = pp.getReflectedControlPoint();
-              var cntrl = pp.getAsControlPoint(pp.isRelativeCommand());
-              var cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
-              pp.addMarker(cp, cntrl, p1);
-              bb.addBezierCurve(curr.x, curr.y, p1.x, p1.y, cntrl.x, cntrl.y, cp.x, cp.y);
-              }
-               */
+              var cntrl1,
+                  cntrl2,
+                  cp;
+              do {
+                  cmd = new pathparser.Command(pp.command);
+                  cmd.current = pp.current;
+                  cntrl1 = pp.getReflectedControlPoint();
+                  cntrl2 = pp.getAsControlPoint(pp.isRelativeCommand());
+                  cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
+                  cmd.virtual_cntrlpt = cntrl1;
+                  cmd.ctlpt2 = cntrl2;
+                  cmd.target = cp;
+                  cmd.absEndPt =  new pathparser.Point(cp.x, cp.y);
+                  if (pp.isRelativeCommand(cmd.command)) {
+                      if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
+                          cmd.absEndPt.translate(cmdList.cmd[cmdList.cmd.length - 1].absEndPt.x, cmdList.cmd[cmdList.cmd.length - 1].absEndPt.y);
+                      }
+                  }
+                  cmdList.push(cmd);
+              } while (!pp.isCommandOrEnd());
   };
   var parseQ = function(pp, cmdList) {
               var cmd;
@@ -630,9 +626,9 @@
               do {
                   cmd = new pathparser.Command(pp.command);
                   cmd.current = pp.current;
-                  // T2D2 cntrl = reflection of the control point on the previous command relative to the cuurent point or current point if the previous command isn't Q,q,T or t
+                  cntrl = pp.getReflectedControlPoint();
                   cp = pp.getAsCurrentPoint(pp.isRelativeCommand());
-                  cmd.ctlpt1 = cntrl;
+                  cmd.virtual_cntrlpt = cntrl;
                   cmd.target = cp;
                   cmd.absEndPt =  new pathparser.Point(cp.x, cp.y);
                   if (pp.isRelativeCommand(cmd.command)) {
@@ -661,9 +657,9 @@
           'H': parseH,
           'V': parseV,
           'C': parseC,
-          'S': parseS, // T2D2
+          'S': parseS, 
           'Q': parseQ,
-          'T': parseT, // T2D2
+          'T': parseT,
           'A': parseA, // T2D2
           'Z': parseZ
   };
@@ -776,6 +772,28 @@
       cmd.target = pt;
       return cmd;
   }
+  function createCubicCommand(cmdcode, cmdList, icmd) {
+      var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+      cmd.ctlpt1 = new pathparser.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+      cmd.ctlpt2 = new pathparser.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
+      return cmd;
+  }
+  function createImplicitCubicCommand(cmdcode, cmdList, icmd) {
+      var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+      cmd.virtual_cntrlpt = new pathparser.Point(cmdList.cmd[icmd].virtual_cntrlpt.x, cmdList.cmd[icmd].virtual_cntrlpt.y);
+      cmd.ctlpt2 = new pathparser.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
+      return cmd;
+  }
+  function createQuadCommand(cmdcode, cmdList, icmd) {
+      var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+      cmd.ctlpt1 = new pathparser.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
+      return cmd;
+  }
+  function createImplicitQuadCommand(cmdcode, cmdList, icmd) {
+      var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
+      cmd.virtual_cntrlpt = new pathparser.Point(cmdList.cmd[icmd].virtual_cntrlpt.x, cmdList.cmd[icmd].virtual_cntrlpt.y);
+      return cmd;
+  }
   var simpleCommand = function(cmdList, revCmdList, icmd,  cmdcode) { 
                 var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
                 return cmd;
@@ -822,33 +840,50 @@
                 return cmd;
               },
           'q': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                cmd.ctlpt1 = new pathparser.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                return cmd;
+                return createQuadCommand(cmdcode, cmdList, icmd);
               },
           'Q': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                cmd.ctlpt1 = new pathparser.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                if ((cmdcode === 'Q')||(cmdcode === 'T')) {
-                    cmd.command = (cmdcode==='Q'?'q':'t');
+                var cmd = createQuadCommand(cmdcode, cmdList, icmd);
+                if (cmdcode === 'Q') {
+                    cmd.command = 'q';
                     cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                     cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                 }
                 return cmd;
               },
-          'c': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                cmd.ctlpt1 = new pathparser.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                cmd.ctlpt2 = new pathparser.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
+          't': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                return createImplicitQuadCommand(cmdcode, cmdList, icmd);
+              },
+          'T': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = createImplicitQuadCommand(cmdcode, cmdList, icmd);
+                if (cmdcode === 'T') {
+                    cmd.command = 't';
+                    cmd.virtual_cntrlpt.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                }
                 return cmd;
               },
+          'c': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                return createCubicCommand(cmdcode, cmdList, icmd);
+              },
           'C': function(cmdList, revCmdList, icmd,  cmdcode) { 
-                var cmd = createsimplecommand(cmdcode, cmdList.cmd[icmd].target.x, cmdList.cmd[icmd].target.y);
-                cmd.ctlpt1 = new pathparser.Point(cmdList.cmd[icmd].ctlpt1.x, cmdList.cmd[icmd].ctlpt1.y);
-                cmd.ctlpt2 = new pathparser.Point(cmdList.cmd[icmd].ctlpt2.x, cmdList.cmd[icmd].ctlpt2.y);
+                var cmd = createCubicCommand(cmdcode, cmdList, icmd);
                 if (cmdcode === 'C') {
                     cmd.command = 'c';
                     cmd.ctlpt1.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.ctlpt2.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                    cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
+                }
+                return cmd;
+              },
+          's': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                return createImplicitCubicCommand(cmdcode, cmdList, icmd);
+              },
+          'S': function(cmdList, revCmdList, icmd,  cmdcode) { 
+                var cmd = createImplicitCubicCommand(cmdcode, cmdList, icmd);
+                if (cmdcode === 'S') {
+                    cmd.command = 's';
+                    cmd.virtual_cntrlpt.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                     cmd.ctlpt2.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                     cmd.target.translate(-revCmdList.cmd[icmd - 1].crtPt.x, -revCmdList.cmd[icmd - 1].crtPt.y);
                 }
@@ -866,11 +901,30 @@
                     var pt = new pathparser.Point(-1 * commandi.target.x, -1 * commandi.target.y);
                     cmd.target = pt;
                   };
-      var qortReverse =  function(i, cmd, commandi) {
+      var qReverse =  function(i, cmd, commandi) {
                     var target = new pathparser.Point(commandi.target.x, commandi.target.y);
                     cmd.ctlpt1 = new pathparser.Point(commandi.ctlpt1.x - target.x, commandi.ctlpt1.y - target.y);
                     cmd.target = new pathparser.Point(-1 * target.x, -1 * target.y);
                     };
+      var tReverse =  function(i, cmd, commandi) {
+                    var target = new pathparser.Point(commandi.target.x, commandi.target.y);
+                    cmd.command = 'q';
+                    cmd.ctlpt1 = new pathparser.Point(commandi.virtual_cntrlpt.x - target.x, commandi.virtual_cntrlpt.y - target.y);
+                    cmd.target = new pathparser.Point(-1 * target.x, -1 * target.y);
+                    };
+      var cReverse =  function(i, cmd, commandi) {
+                    var target = new pathparser.Point(commandi.target.x, commandi.target.y);
+                    cmd.ctlpt1 = new pathparser.Point(commandi.ctlpt2.x - target.x, commandi.ctlpt2.y - target.y);
+                    cmd.ctlpt2 = new pathparser.Point(commandi.ctlpt1.x - target.x, commandi.ctlpt1.y - target.y);
+                    cmd.target = new pathparser.Point(-1 * target.x, -1 * target.y);
+                  };
+      var sReverse =  function(i, cmd, commandi) {
+                    var target = new pathparser.Point(commandi.target.x, commandi.target.y);
+                    cmd.command = 'c';
+                    cmd.ctlpt1 = new pathparser.Point(commandi.ctlpt2.x - target.x, commandi.ctlpt2.y - target.y);
+                    cmd.ctlpt2 = new pathparser.Point(commandi.virtual_cntrlpt.x - target.x, commandi.virtual_cntrlpt.y - target.y);
+                    cmd.target = new pathparser.Point(-1 * target.x, -1 * target.y);
+                  };
       this.reverseRules = {
               'M': simpleReverse,
               'h': function(i, cmd, commandi) {
@@ -880,14 +934,10 @@
                     cmd.d = -1 * commandi.d;
                   },
               'l': simpleReverse,
-              'c': function(i, cmd, commandi) {
-                    var target = new pathparser.Point(commandi.target.x, commandi.target.y);
-                    cmd.ctlpt1 = new pathparser.Point(commandi.ctlpt2.x - target.x, commandi.ctlpt2.y - target.y);
-                    cmd.ctlpt2 = new pathparser.Point(commandi.ctlpt1.x - target.x, commandi.ctlpt1.y - target.y);
-                    cmd.target = new pathparser.Point(-1 * target.x, -1 * target.y);
-                  },
-              'q': qortReverse, // q or t
-              't': qortReverse
+              'c': cReverse,
+              's': sReverse,
+              'q': qReverse,
+              't': tReverse
               };
       this.reverse = function () {
           // works only with relative commands, except the M
@@ -898,7 +948,7 @@
               target;
           for (i = this.cmd.length - 1; i >= 0; i -= 1) {
               cmd = new pathparser.Command(this.cmd[i].command);
-              var rule = this.reverseRules[cmd];
+              var rule = this.reverseRules[cmd.command];
               rule(i, cmd, this.cmd[i]);
               revCmdList.push(cmd);
           }
