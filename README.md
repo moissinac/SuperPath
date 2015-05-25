@@ -18,7 +18,7 @@ URL: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5501583&isnumber=55
 **SuperPathExpander.js**
 
 Script which expand instances of the superpath extension to produce a standard 
-SVG 1.1 file. Implements L, l, Q, q, C, c
+SVG 1.1 file. Implements L, l, Q, q, C, c, T, t, S, s
 
 A typical usage is:
 
