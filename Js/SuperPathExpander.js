@@ -28,7 +28,7 @@
   (function () {
       "use strict";
       var superpath = {
-          version: "0.1.9",
+          version: "0.2.10",
           SEPARATOR: "|", // with the current parser, can be all chars but other commands and space
           OPENCHUNK: "(",
           ENDCHUNK: ")",
@@ -426,7 +426,7 @@
               }
           }
   var pathparser = {
-      version: "0.1.7",
+      version: "0.2.9",
       ParseToken: {}, // associative table which associate each command with a parse function; by default, is the fusion of ParseAbsToken and ParseRelToken
       TokensToString: {},
       Command: function(letter) {},
