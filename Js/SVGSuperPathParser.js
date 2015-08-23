@@ -28,7 +28,7 @@
   (function () {
       "use strict";
       var superpath = {
-          version: "0.1.1",
+          version: "0.1.9",
           SEPARATOR: "|", // with the current parser, can be all chars but other commands and space
           OPENCHUNK: "(",
           ENDCHUNK: ")",

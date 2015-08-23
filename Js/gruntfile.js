@@ -7,6 +7,8 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-concat');
   // Load the plugin that provides the "watch" task.
   grunt.loadNpmTasks('grunt-contrib-watch');
+  // Load the plugin that provides the "newer" task.
+  grunt.loadNpmTasks('grunt-newer');
   // Load the plugin that provides the "bump" task to automatically manage version number
   grunt.loadNpmTasks('grunt-bump');
   // Load the plugin that provides the "git" task to automatically update the code in a git repository
@@ -38,7 +40,7 @@ module.exports = function(grunt) {
                       'SuperPathExpander.js',
                       'SuperPathExpander.min.js',
                       'SVGSuperPathParser.js',
-                      'SVGSuperPathParser.min.js', 
+                      'SVGSuperPathParser.min.js' 
                       ],
         updateConfigs: [],
         commit: true,
