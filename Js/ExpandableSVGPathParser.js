@@ -31,7 +31,7 @@
               }
           }
   var pathparser = {
-      version: "0.2.10",
+      version: "0.2.11",
       ParseToken: {}, // associative table which associate each command with a parse function; by default, is the fusion of ParseAbsToken and ParseRelToken
       TokensToString: {},
       Command: function(letter) {},
@@ -89,7 +89,8 @@
       };
       return cmd;
   };
-
+  pathparser.Command.prototype.stringifyCmd = function() {  return this.command + stringifyParameters(this); };
+  
   // parsing functions to build internal command representation from each parsed command
   var parseM = function(pp, cmdList) {
         var p = pp.getAsCurrentPoint(pp.isRelativeCommand());
@@ -599,16 +600,23 @@
               'a': aReverse
               };
       this.reverse = function () {
-          // works only with relative commands, except the M
+          // works only with relative commands, except the M; TODO check for a z in the middle of a path
           var revCmdList = new pathparser.CmdList(),
               i,
               cmd,
               pt,
-              target;
+              target,
+              zFlag = false;
           for (i = this.cmd.length - 1; i >= 0; i -= 1) {
-              cmd = new pathparser.Command(this.cmd[i].command);
-              var rule = this.reverseRules[cmd.command];
-              rule(i, cmd, this.cmd[i]);
+              if (this.cmd[i].command!=='z') { // doesn't put a 'reverse' z at the begining of a path
+                  cmd = new pathparser.Command(this.cmd[i].command);
+                  var rule = this.reverseRules[cmd.command];
+                  rule(i, cmd, this.cmd[i]);
+                  revCmdList.push(cmd);
+              } else zFlag = true;
+          }
+          if (zFlag===true) { // add a closing z
+              cmd = new pathparser.Command('z');
               revCmdList.push(cmd);
           }
           return revCmdList;

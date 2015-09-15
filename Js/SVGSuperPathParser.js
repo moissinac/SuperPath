@@ -28,7 +28,7 @@
   (function () {
       "use strict";
       var superpath = {
-          version: "0.2.10",
+          version: "0.2.11",
           SEPARATOR: "|", // with the current parser, can be all chars but other commands and space
           OPENCHUNK: "(",
           ENDCHUNK: ")",
@@ -37,6 +37,21 @@
       };
       
       superpath.ParseToken = {};
+      superpath.observer = new MutationObserver(function(mutations) {
+              mutations.forEach(function(mutation) {
+              if (mutation.type==="attributes")
+              {
+                    if (mutation.attributeName==="d")
+                    {
+                          console.log("mutation target: "+ mutation.target.originalD);
+                          mutation.target.originalD = mutation.target.getAttribute("d");
+                          superpath.expandPaths();
+                    }
+              }
+              });    
+            });
+      // configuration of the observer:
+      var obsconfig = { attributes: true, childList: false, characterData: true };      
 
       function getSubpathRefId(pp) {
           var id = "";
@@ -66,6 +81,7 @@
                   var descriptionsubpath = getSubpathDesc(pp);
                   cmd.chunkName = idsubpath;
                   cmd.strDescription = descriptionsubpath; // T2D2 replace it by a list of commands??
+                  cmd.current = pp.current;
                   if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
                       cmd.crtPt = cmdList.cmd[cmdList.cmd.length - 1].absEndPt;
                   }
@@ -75,6 +91,10 @@
       superpath.ParseToken[superpath.DIRECTREF] = function(pp, cmdList) {
                   var cmd = new pathparser.Command(pp.command);
                   cmd.ref = getSubpathRefId(pp);
+                  cmd.current = pp.current;
+                  if (existy(cmdList.cmd[cmdList.cmd.length - 1].absEndPt)) {
+                      cmd.crtPt = cmdList.cmd[cmdList.cmd.length - 1].absEndPt;
+                  }
                   cmdList.push(cmd);
       };
       superpath.ParseToken[superpath.ENDCHUNK] = function(pp, cmdList) {
@@ -92,8 +112,8 @@
       if I need to expand the associated cmdList
       the later is perhaps useful to update the known absolute point and be able to solve some references
        */
-      // expands all the chunks found in the data, (taking care to changes in the indexes of chunks using that path!)
-      function expandChunks(path) {
+      // expands all the chunks found in the data, (taking care to change in the indexes of chunks using that path!)
+      superpath.expandChunks = function(path) {
           var newpathdata,
               index,
               idSep,
@@ -131,7 +151,7 @@
           }
           return someChange;
       }
-      function expandReversedChunks(path) {
+      superpath.expandReversedChunks = function (path) {
           var newpathdata,
               index,
               idSep,
@@ -175,6 +195,8 @@
           var data = "M" + startingPt.x + "," + startingPt.y + desc,
               cmdList = pathparser.svg_parse_path(data),
               relCmdList = pathparser.fullrelativePathCmdList(cmdList);
+          relCmdList.totalVector = new pathparser.Point(cmdList.cmd[cmdList.cmd.length-1].absEndPt.x, cmdList.cmd[cmdList.cmd.length-1].absEndPt.y); 
+          relCmdList.totalVector.translate(-startingPt.x, -startingPt.y);// compute the relative translation by the complete cmdlist
           relCmdList.cmd = relCmdList.cmd.slice(1);
           // remove the fake starting 'M' command
           return relCmdList;
@@ -191,9 +213,10 @@
               str += cmdList.cmd[i].toString();
           return str;
       }
+      
       // take a data path, complete the chunk dictionnary with found chunks, and remove the chunk definition
       function findChunks(path) {
-          var newpathdata = path.getAttribute("d"),
+          var newpathdata = path.originalD = (path.originalD?path.originalD:path.getAttribute("d")),
               chunkName,
               chunk,
               cmdList,
@@ -207,16 +230,20 @@
               cmd = cmdList.cmd[cmdIndex];
               if ((cmd.command === superpath.OPENCHUNK) && (existy(cmd.crtPt))) {
                   chunkName = cmd.chunkName;
-                  chunk = superpath.chunks[chunkName] = {};
+                  chunk = {};
                   chunk.name = chunkName;
                   // T2D2 here it's possible that cmd.crtPt isn't defined; must add processing of that case
                   chunk.description = buildCmdList(cmd.strDescription, cmd.crtPt);
                   // list of commands
+                  //chunk.startingPt = cmd.crtPt;
+                  console.log(chunkName+" delta (x="+chunk.description.totalVector.x+", y="+chunk.description.totalVector.y+")");
+                  chunk.startingPt = cmd.current;
                   chunk.reversedDescription = buildReversedCmdList(chunk.description);
                   chunk.path = path; // to know the path from which comes the chunk
                   chunk.data = strDescription(chunk.description);
                   chunk.rData = strDescription(chunk.reversedDescription);
                   path.chunks.push(chunk); // to have a pointer from the path to the chunks defined in it
+                  superpath.chunks[chunkName] = chunk;
                   // T2D2 process the replacement of the ( command in the cmdList
                   path.newpathdata = newpathdata.replace(newpathdata.slice(newpathdata.indexOf(superpath.OPENCHUNK), newpathdata.indexOf(superpath.ENDCHUNK) + 1), chunk.data);
                   someChange = true;
@@ -292,7 +319,7 @@
       // T2D2 check for the following problem:
       //  possible that doesn't work if the id of the chunk contains a cmd code and if a chunk contains a chunk
       // recursivity and circularity of the chunk functionality must be analyzed
-      function buildTablesOfPathUsingChunk(pathlist, pathDefinerList, pathDRefList, pathIRefList) {
+      superpath.buildTablesOfPathUsingChunk = function (pathlist, pathDefinerList, pathDRefList, pathIRefList) {
           var iPath,
               path,
               pathdata,
@@ -300,7 +327,7 @@
           // pathlist isn't a table but an html collection => no forEach method
           for (iPath = 0; len > iPath; iPath += 1) {
               path = pathlist[iPath];
-              pathdata = path.getAttribute("d");
+              pathdata = path.originalD;
               // build list of path containing a chunk definition
               path.srcData = pathdata;
               if (pathdata.indexOf(superpath.OPENCHUNK) !== -1) {
@@ -313,6 +340,54 @@
               // build list of path containing a chunk inverse reference
               if (pathdata.indexOf(superpath.REVERSEDREF) !== -1) {
                   pathIRefList.push(path);
+              }
+          }
+      }
+      superpath.searchPathDefiner = function(chunkname) {
+         var path = null;
+         if (superpath.chunks[chunkname]) {
+              return superpath.chunks[chunkname].path;
+         } else {  // the chunk is not already identified
+               
+         }
+         return path;
+      };
+      
+      superpath.getOriginalD = function(path) {
+          
+      };
+      
+      superpath.buildTablesOfPathUsingNamedChunk = function (pathlist, chunkName, pathDefinerList, pathDRefList, pathIRefList) {
+          var iPath,
+              indexref,
+              namelength=chunkName.length,
+              path,
+              pathdata,
+              len = pathlist.length;
+          // pathlist isn't a table but an html collection => no forEach method
+          for (iPath = 0; len > iPath; iPath += 1) {
+              path = pathlist[iPath];
+              path.originalD = pathdata = (path.originalD?path.originalD:path.getAttribute('d'));
+              // build list of path containing a chunk definition
+              path.srcData = pathdata;
+              if (pathdata.indexOf(superpath.OPENCHUNK+chunkName) !== -1) {
+                  if (pathdata[indexref+namelength+1]===superpath.SEPARATOR) {
+                      pathDefinerList.push(path);
+                  }
+              }
+              // build list of path containing a chunk direct reference
+              if ((indexref=pathdata.indexOf(superpath.DIRECTREF+chunkName)) !== -1) {
+                  // either the reference is followed by superpath.DIRECTREF, either it's the end of the path
+                  if ((pathdata[indexref+namelength+1]===superpath.SEPARATOR)||(indexref+namelength+1===pathdata.length)) {
+                    pathDRefList.push(path);
+                  }
+              }
+              // build list of path containing a chunk inverse reference
+              if ((indexref=pathdata.indexOf(superpath.REVERSEDREF+chunkName)) !== -1) {
+                  // either the reference is followed by superpath.DIRECTREF, either it's the end of the path
+                  if ((pathdata[indexref+namelength+1]===superpath.SEPARATOR)||(indexref+namelength+1===pathdata.length)) {
+                      pathIRefList.push(path);
+                  }
               }
           }
       }
@@ -359,11 +434,19 @@
               pathDRefList = [],    // list of path using a direct reference to a subpath
               pathIRefList = [],    // list of path using an inverse reference to a subpath
               someChange = false;
+          // copy original d attribute, for reference; could be done only for path with chunk definition or chunk reference
+          superpath.observer.disconnect(); // suspend the observer
+          var iPath = 0;
+          while (pathlist.length > iPath) {
+                pathlist[iPath].originalD = (pathlist[iPath].originalD?pathlist[iPath].originalD:pathlist[iPath].getAttribute("d"));  
+                pathlist[iPath].setAttribute("d", pathlist[iPath].originalD);
+                iPath += 1;
+          }
           /* T2D2 group the three following calls to maintain a coherent view of the extensions */
           pathparser.addCommands(superpath.ParseToken);
           pathparser.addCmdCreationRules(superpath.cmdCreationRules);
           pathparser.addStringifier(superpath.TokensToString);
-          buildTablesOfPathUsingChunk(pathlist, pathDefinerList, pathDRefList, pathIRefList);
+          superpath.buildTablesOfPathUsingChunk(pathlist, pathDefinerList, pathDRefList, pathIRefList);
           do {
               // try to process the chunk definitions and resolve the references until nothing appends
               someChange = false;
@@ -372,16 +455,21 @@
               someChange |= loopOnChunks(pathDefinerList, findChunks, superpath.OPENCHUNK);
               // expand direct chunks references
               // remove each path from the list of direct reference if completely solved
-              someChange |= loopOnChunks(pathDRefList, expandChunks, superpath.DIRECTREF);
+              someChange |= loopOnChunks(pathDRefList, superpath.expandChunks, superpath.DIRECTREF);
               // expand reversed chunks
               // remove the path from the list of reversed reference if completely solved
-              someChange |= loopOnChunks(pathIRefList, expandReversedChunks, superpath.REVERSEDREF);
+              someChange |= loopOnChunks(pathIRefList, superpath.expandReversedChunks, superpath.REVERSEDREF);
           } while (someChange);
           if ((pathDefinerList.length !== 0) || (pathDRefList.length !== 0) || (pathIRefList.length !== 0)) {
               console.log("Problem: some chunk reference seems impossible to solve!");
-              if (pathDefinerList.length !== 0) { console.log("Problem with" + pathDefinerList[0].toString()) ; }
-              if (pathDRefList.length !== 0) { console.log("Problem with reference" + pathDRefList[0].toString()); }
-              if (pathIRefList.length !== 0) { console.log("Problem with inverse reference" + pathIRefList[0].toString()); }
+              if (pathDefinerList.length !== 0) { console.log("Problem with " + pathDefinerList[0].chunks) ; }
+              if (pathDRefList.length !== 0) { console.log("Problem with reference " + pathDRefList[0].chunks); }
+              if (pathIRefList.length !== 0) { console.log("Problem with inverse reference " + pathIRefList[0].chunks); }
+          }
+          var iPath = 0;
+          while (pathlist.length > iPath) {
+              superpath.observer.observe(pathlist[iPath], obsconfig); // observe if d attribute of the path change
+                iPath += 1;
           }
       };
       // T2D2 I need to understand the following lines (inspired from code of other modules)
