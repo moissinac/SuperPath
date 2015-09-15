@@ -31,7 +31,7 @@
               }
           }
   var pathparser = {
-      version: "0.2.12",
+      version: "0.2.13",
       ParseToken: {}, // associative table which associate each command with a parse function; by default, is the fusion of ParseAbsToken and ParseRelToken
       TokensToString: {},
       Command: function(letter) {},
@@ -56,14 +56,20 @@
           this.y += dy;
       };
   };
-  function stringifyParameters(cmd) {
+  function stringifyArcParameters(cmd) {
       var str = "";
-      if (existy(cmd.d)) { str += cmd.d + " "; }
       if (existy(cmd.rx)) { str += cmd.rx + " "; }
       if (existy(cmd.ry)) { str += cmd.ry + " "; }
       if (existy(cmd.xaxis)) { str += cmd.xaxis + " "; }
       if (existy(cmd.largeArc)) { str += cmd.largeArc + " "; }
       if (existy(cmd.sweep)) { str += cmd.sweep + " "; }
+      return str;
+  }
+  function stringifyParameters(cmd) {
+      var str = "";
+      if (existy(cmd.d)) { str += cmd.d + " "; }
+      if (existy(cmd.rx)) 
+                str += stringifyArcParameters(cmd);
       if (existy(cmd.ctlpt1)) { str += cmd.ctlpt1.x + "," + cmd.ctlpt1.y + " "; }
       if (existy(cmd.ctlpt2)) { str += cmd.ctlpt2.x + "," + cmd.ctlpt2.y + " "; }
       if (existy(cmd.target)) { str += cmd.target.x + "," + cmd.target.y; }
@@ -600,7 +606,7 @@
               'a': aReverse
               };
       this.reverse = function () {
-          // works only with relative commands, except the M; TODO check for a z in the middle of a path
+          // works only with relative commands, except the M; T2D2 check for z in the middle of a path
           var revCmdList = new pathparser.CmdList(),
               i,
               cmd,
