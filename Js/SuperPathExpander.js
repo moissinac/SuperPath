@@ -28,7 +28,7 @@
   (function () {
       "use strict";
       var superpath = {
-          version: "0.2.13",
+          version: "0.2.14",
           SEPARATOR: "|", // with the current parser, can be all chars but other commands and space
           OPENCHUNK: "(",
           ENDCHUNK: ")",
@@ -426,6 +426,12 @@
                 iPath += 1;
           }
       }
+      function expanderReportError(pathDefinerList, pathDRefList, pathIRefList) {
+              console.log("Problem: some chunk reference seems impossible to solve!");
+              if (pathDefinerList.length !== 0) { console.log("Problem with " + pathDefinerList[0].chunks) ; }
+              if (pathDRefList.length !== 0) { console.log("Problem with reference " + pathDRefList[0].chunks); }
+              if (pathIRefList.length !== 0) { console.log("Problem with inverse reference " + pathIRefList[0].chunks); }
+      }
       /*
       Algo:
       1) build a table D of path with (
@@ -471,12 +477,8 @@
               // remove the path from the list of reversed reference if completely solved
               someChange |= loopOnChunks(pathIRefList, superpath.expandReversedChunks, superpath.REVERSEDREF);
           } while (someChange);
-          if ((pathDefinerList.length !== 0) || (pathDRefList.length !== 0) || (pathIRefList.length !== 0)) {
-              console.log("Problem: some chunk reference seems impossible to solve!");
-              if (pathDefinerList.length !== 0) { console.log("Problem with " + pathDefinerList[0].chunks) ; }
-              if (pathDRefList.length !== 0) { console.log("Problem with reference " + pathDRefList[0].chunks); }
-              if (pathIRefList.length !== 0) { console.log("Problem with inverse reference " + pathIRefList[0].chunks); }
-          }
+          if ((pathDefinerList.length !== 0) || (pathDRefList.length !== 0) || (pathIRefList.length !== 0)) 
+              expanderReportError(pathDefinerList, pathDRefList, pathIRefList);
           iPath = 0;
           while (pathlist.length > iPath) {
               superpath.observer.observe(pathlist[iPath], obsconfig); // observe if d attribute of the path change
@@ -492,6 +494,7 @@
           this.superpath = superpath;
       }
 }).call(this);
+
   /*
    *
    *            SVG Path Parser with capability to define extensiosn
@@ -525,7 +528,7 @@
               }
           }
   var pathparser = {
-      version: "0.2.12",
+      version: "0.2.13",
       ParseToken: {}, // associative table which associate each command with a parse function; by default, is the fusion of ParseAbsToken and ParseRelToken
       TokensToString: {},
       Command: function(letter) {},
