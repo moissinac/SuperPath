@@ -28,7 +28,7 @@
   (function () {
       "use strict";
       var superpath = {
-          version: "0.2.11",
+          version: "0.2.12",
           SEPARATOR: "|", // with the current parser, can be all chars but other commands and space
           OPENCHUNK: "(",
           ENDCHUNK: ")",
@@ -150,7 +150,7 @@
               index = (delta !== -1 ? index + 1 + delta : -1);
           }
           return someChange;
-      }
+      };
       superpath.expandReversedChunks = function (path) {
           var newpathdata,
               index,
@@ -187,7 +187,7 @@
               index = (delta !== -1 ? index + 1 + delta : -1);
           }
           return someChange;
-      }
+      };
       /* T2D2 check if buildCmdList, buildReverseCmdList and strDescription must be in ExpandableSVGPathParser or here */
       function buildCmdList(desc, startingPt) {
           // T2D2 check: the following fake M seems to be a bad trace of a previous implementation
@@ -342,7 +342,7 @@
                   pathIRefList.push(path);
               }
           }
-      }
+      };
       superpath.searchPathDefiner = function(chunkname) {
          var path = null;
          if (superpath.chunks[chunkname]) {
@@ -357,7 +357,10 @@
           
       };
       
-      superpath.buildTablesOfPathUsingNamedChunk = function (pathlist, chunkName, pathDefinerList, pathDRefList, pathIRefList) {
+      /*
+       * 
+       *
+       superpath.buildTablesOfPathUsingNamedChunk = function (pathlist, chunkName, pathDefinerList, pathDRefList, pathIRefList) {
           var iPath,
               indexref,
               namelength=chunkName.length,
@@ -390,7 +393,8 @@
                   }
               }
           }
-      }
+      };
+      */
       function loopOnChunks(pathList, appliedFct, cmdchar) {
           var iPath = 0,
               path,
@@ -410,6 +414,17 @@
               iPath += 1;
           }
           return someChange;
+      }
+      
+      function originalDSetup(pathlist) {
+          var iPath = 0;
+          while (pathlist.length > iPath) {
+                if (pathlist[iPath].originalD)  
+                        pathlist[iPath].setAttribute("d", pathlist[iPath].originalD);
+                else
+                    pathlist[iPath].originalD = pathlist[iPath].getAttribute("d"); 
+                iPath += 1;
+          }
       }
       /*
       Algo:
@@ -437,11 +452,7 @@
           // copy original d attribute, for reference; could be done only for path with chunk definition or chunk reference
           superpath.observer.disconnect(); // suspend the observer
           var iPath = 0;
-          while (pathlist.length > iPath) {
-                pathlist[iPath].originalD = (pathlist[iPath].originalD?pathlist[iPath].originalD:pathlist[iPath].getAttribute("d"));  
-                pathlist[iPath].setAttribute("d", pathlist[iPath].originalD);
-                iPath += 1;
-          }
+          originalDSetup(pathlist); // copy d attribute value to originalD if originalD doesn't exit and reset d to originalD
           /* T2D2 group the three following calls to maintain a coherent view of the extensions */
           pathparser.addCommands(superpath.ParseToken);
           pathparser.addCmdCreationRules(superpath.cmdCreationRules);
@@ -466,7 +477,7 @@
               if (pathDRefList.length !== 0) { console.log("Problem with reference " + pathDRefList[0].chunks); }
               if (pathIRefList.length !== 0) { console.log("Problem with inverse reference " + pathIRefList[0].chunks); }
           }
-          var iPath = 0;
+          iPath = 0;
           while (pathlist.length > iPath) {
               superpath.observer.observe(pathlist[iPath], obsconfig); // observe if d attribute of the path change
                 iPath += 1;
