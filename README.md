@@ -1,9 +1,10 @@
 SuperPath
 =========
 
-Proposed extension for SVG
+[![bitHound Score](https://www.bithound.io/github/moissinac/SuperPath/badges/score.svg)](https://www.bithound.io/github/moissinac/SuperPath)
+[![bitHound Dependencies](https://www.bithound.io/github/moissinac/SuperPath/badges/dependencies.svg)](https://www.bithound.io/github/moissinac/SuperPath/master/dependencies/npm)
 
-Work in progress
+Proposed extension for SVG
 
 For now, just a proof of concept, but can be useful. Full implementation and documentation soon...
 
