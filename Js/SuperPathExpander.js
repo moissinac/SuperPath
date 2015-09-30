@@ -1,5 +1,5 @@
   /*
-   *            SVG SuperPath Parser extensiosn
+   *            SVG SuperPath Parser extension
    *
    *            Author: Jean-Claude Moissinac
    *            Copyright (c) Telecom ParisTech 2013-2015
@@ -43,7 +43,7 @@
               {
                     if (mutation.attributeName==="d")
                     {
-                          console.log("mutation target: "+ mutation.target.originalD);
+                          //console.log("mutation target: "+ mutation.target.originalD);
                           mutation.target.originalD = mutation.target.getAttribute("d");
                           superpath.expandPaths();
                     }
@@ -123,6 +123,7 @@
               delta,
               someChange = false;
           newpathdata = path.getAttribute("d");
+          //console.log("expandChunks of "+newpathdata);
           index = newpathdata.search(superpath.DIRECTREF);
           while (index > 0) {
               // index is the begining of the id (after superpath.DIRECTREF), superpath.SEPARATOR is the separator with the following
@@ -236,7 +237,7 @@
                   chunk.description = buildCmdList(cmd.strDescription, cmd.crtPt);
                   // list of commands
                   //chunk.startingPt = cmd.crtPt;
-                  console.log(chunkName+" delta (x="+chunk.description.totalVector.x+", y="+chunk.description.totalVector.y+")");
+                  //console.log(chunkName+" delta (x="+chunk.description.totalVector.x+", y="+chunk.description.totalVector.y+")");
                   chunk.startingPt = cmd.current;
                   chunk.reversedDescription = buildReversedCmdList(chunk.description);
                   chunk.path = path; // to know the path from which comes the chunk
@@ -283,35 +284,6 @@
                     return cmd;
                   };
       /* end of: extension to be checked */
-      /* start of code to manage modification oranimation of a subpath */
-      /*
-      var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
-      
-      var observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-          if (mutation.type === 'childList') {
-            var list_values = [].slice.call(list.children)
-                .map( function(node) { return node.innerHTML; })
-                .filter( function(s) {
-                  if (s === '<br />') {
-                    return false;
-                  }
-                  else {
-                    return true;
-                  }
-            });
-            console.log(list_values);
-          }
-        });
-      });
-      
-      observer.observe(list, {
-        attributes: true,
-        childList: true,
-        characterData: true
-      });
-      */
-      /* end of code to manage modification or animation of a subpath */
 
      // parsing path ; source inspired from canvg library
       // T2D2 join the author
@@ -353,48 +325,6 @@
          return path;
       };
       
-      superpath.getOriginalD = function(path) {
-          
-      };
-      
-      /*
-       * 
-       *
-       superpath.buildTablesOfPathUsingNamedChunk = function (pathlist, chunkName, pathDefinerList, pathDRefList, pathIRefList) {
-          var iPath,
-              indexref,
-              namelength=chunkName.length,
-              path,
-              pathdata,
-              len = pathlist.length;
-          // pathlist isn't a table but an html collection => no forEach method
-          for (iPath = 0; len > iPath; iPath += 1) {
-              path = pathlist[iPath];
-              path.originalD = pathdata = (path.originalD?path.originalD:path.getAttribute('d'));
-              // build list of path containing a chunk definition
-              path.srcData = pathdata;
-              if (pathdata.indexOf(superpath.OPENCHUNK+chunkName) !== -1) {
-                  if (pathdata[indexref+namelength+1]===superpath.SEPARATOR) {
-                      pathDefinerList.push(path);
-                  }
-              }
-              // build list of path containing a chunk direct reference
-              if ((indexref=pathdata.indexOf(superpath.DIRECTREF+chunkName)) !== -1) {
-                  // either the reference is followed by superpath.DIRECTREF, either it's the end of the path
-                  if ((pathdata[indexref+namelength+1]===superpath.SEPARATOR)||(indexref+namelength+1===pathdata.length)) {
-                    pathDRefList.push(path);
-                  }
-              }
-              // build list of path containing a chunk inverse reference
-              if ((indexref=pathdata.indexOf(superpath.REVERSEDREF+chunkName)) !== -1) {
-                  // either the reference is followed by superpath.DIRECTREF, either it's the end of the path
-                  if ((pathdata[indexref+namelength+1]===superpath.SEPARATOR)||(indexref+namelength+1===pathdata.length)) {
-                      pathIRefList.push(path);
-                  }
-              }
-          }
-      };
-      */
       function loopOnChunks(pathList, appliedFct, cmdchar) {
           var iPath = 0,
               path,
@@ -406,9 +336,11 @@
               // find and define chunks
               if (pathChange) {
                   path.setAttribute("d", path.newpathdata);
+                  //console.log("path "+ path.id + "new data value:"+path.newpathdata); 
                   if (path.newpathdata.indexOf(cmdchar) === -1) {
                       pathList.splice(iPath, 1);
                   }
+                  path.newpathdata = "";
                   someChange = true;
               }
               iPath += 1;
@@ -459,6 +391,7 @@
           superpath.observer.disconnect(); // suspend the observer
           var iPath = 0;
           originalDSetup(pathlist); // copy d attribute value to originalD if originalD doesn't exit and reset d to originalD
+          superpath.chunks = [];
           /* T2D2 group the three following calls to maintain a coherent view of the extensions */
           pathparser.addCommands(superpath.ParseToken);
           pathparser.addCmdCreationRules(superpath.cmdCreationRules);
@@ -528,7 +461,7 @@
               }
           }
   var pathparser = {
-      version: "0.2.13",
+      version: "0.2.14",
       ParseToken: {}, // associative table which associate each command with a parse function; by default, is the fusion of ParseAbsToken and ParseRelToken
       TokensToString: {},
       Command: function(letter) {},
@@ -1088,6 +1021,7 @@
                     cmd.target = new pathparser.Point(-1 * target.x, -1 * target.y);
                   };
       this.reverseRules = {
+              'm': simpleReverse,
               'M': simpleReverse,
               'h': function(i, cmd, commandi) {
                     cmd.d = -1 * commandi.d;
