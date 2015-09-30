@@ -6,7 +6,7 @@ SuperPath
 
 Proposed extension for SVG
 
-For now, just a proof of concept, but can be useful. Full implementation and documentation soon...
+For now, conceived as a proof of concept, but can be useful and seems working well. 
 
 If you write a scientific paper and use that code, thank's to cite me as follow:
 
@@ -33,15 +33,15 @@ A typical usage is:
  onload="superpath.expandPaths()"
 ```
 
-Then, the principle is to define chunk of path as part of a path at associating id to that part, then to use it with the commands # or ! in the data for other path. the chunk is then defined after translation in a sequence of relatives commands deduced from tha source path. 
+Then, the principle is to define chunk of path as part of a path by associating id to that part, then to use it with the commands # or ! in the data for other path. The chunk is then defined after translation in a sequence of relatives commands deduced from tha source path. 
 
 ```
-#idOfMyChunk
+#idOfMyChunk|
 ```
 insert a copy of the chunk with id idOfMyChunk (a | must follow the id; it's the separator with what follows)
 
 ```
-!idOfMyChunk
+!idOfMyChunk|
 ```
 insert a copy of the chunk with id idOfMyChunk  (a | must follow the id; it's the separator with what follows) but after reversing the commands (from the end to the begining, and processing them to follow the same geometry from the end to the begining)
 

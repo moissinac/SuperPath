@@ -25,31 +25,31 @@
    *
    *
   */
-  (function () {
-      "use strict";
-      var superpath = {
-          version: "0.2.14",
-          SEPARATOR: "|", // with the current parser, can be all chars but other commands and space
-          OPENCHUNK: "(",
-          ENDCHUNK: ")",
-          DIRECTREF: "#",
-          REVERSEDREF: "!"
-      };
+(function () {
+    "use strict";
+    var superpath = {
+            version: "0.2.14",
+            SEPARATOR: "|", // with the current parser, can be all chars but other commands and space
+            OPENCHUNK: "(",
+            ENDCHUNK: ")",
+            DIRECTREF: "#",
+            REVERSEDREF: "!"
+        };
       
-      superpath.ParseToken = {};
-      superpath.observer = new MutationObserver(function(mutations) {
-              mutations.forEach(function(mutation) {
-              if (mutation.type==="attributes")
-              {
-                    if (mutation.attributeName==="d")
-                    {
-                          //console.log("mutation target: "+ mutation.target.originalD);
-                          mutation.target.originalD = mutation.target.getAttribute("d");
-                          superpath.expandPaths();
-                    }
-              }
-              });    
-            });
+    superpath.ParseToken = {};
+    superpath.observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+            if (mutation.type === "attributes")
+            {
+                if (mutation.attributeName === "data-sp-d")
+                {
+                      //console.log("mutation target: "+ mutation.target.processedD);
+                      mutation.target.processedD = mutation.target.getAttribute("data-sp-d");
+                      superpath.expandPaths();
+                }
+            }
+        });    
+        });
       // configuration of the observer:
       var obsconfig = { attributes: true, childList: false, characterData: true };      
 
@@ -122,7 +122,7 @@
               expanded = "",
               delta,
               someChange = false;
-          newpathdata = path.getAttribute("d");
+          newpathdata = path.processedD;
           //console.log("expandChunks of "+newpathdata);
           index = newpathdata.search(superpath.DIRECTREF);
           while (index > 0) {
@@ -161,7 +161,7 @@
               delta,
               rData,
               someChange = false;
-          newpathdata = path.getAttribute("d");
+          newpathdata = path.processedD;
           index = newpathdata.search(superpath.REVERSEDREF);
           while (index > 0) {
               // index is the begining of the id (after superpath.REVERSEDREF), superpath.SEPARATOR is the separator with the following
@@ -217,7 +217,7 @@
       
       // take a data path, complete the chunk dictionnary with found chunks, and remove the chunk definition
       function findChunks(path) {
-          var newpathdata = path.originalD = (path.originalD?path.originalD:path.getAttribute("d")),
+          var newpathdata = path.processedD = (path.processedD?path.processedD:path.getAttribute("data-sp-d")),
               chunkName,
               chunk,
               cmdList,
@@ -299,19 +299,20 @@
           // pathlist isn't a table but an html collection => no forEach method
           for (iPath = 0; len > iPath; iPath += 1) {
               path = pathlist[iPath];
-              pathdata = path.originalD;
-              // build list of path containing a chunk definition
-              path.srcData = pathdata;
-              if (pathdata.indexOf(superpath.OPENCHUNK) !== -1) {
-                  pathDefinerList.push(path);
-              }
-              // build list of path containing a chunk direct reference
-              if (pathdata.indexOf(superpath.DIRECTREF) !== -1) {
-                  pathDRefList.push(path);
-              }
-              // build list of path containing a chunk inverse reference
-              if (pathdata.indexOf(superpath.REVERSEDREF) !== -1) {
-                  pathIRefList.push(path);
+              pathdata = path.processedD;
+              if (existy(pathdata)) {
+                  // build list of path containing a chunk definition
+                  if (pathdata.indexOf(superpath.OPENCHUNK) !== -1) {
+                      pathDefinerList.push(path);
+                  }
+                  // build list of path containing a chunk direct reference
+                  if (pathdata.indexOf(superpath.DIRECTREF) !== -1) {
+                      pathDRefList.push(path);
+                  }
+                  // build list of path containing a chunk inverse reference
+                  if (pathdata.indexOf(superpath.REVERSEDREF) !== -1) {
+                      pathIRefList.push(path);
+                  }
               }
           }
       };
@@ -335,7 +336,7 @@
               pathChange = appliedFct(path);
               // find and define chunks
               if (pathChange) {
-                  path.setAttribute("d", path.newpathdata);
+                  path.processedD = path.newpathdata;
                   //console.log("path "+ path.id + "new data value:"+path.newpathdata); 
                   if (path.newpathdata.indexOf(cmdchar) === -1) {
                       pathList.splice(iPath, 1);
@@ -348,13 +349,13 @@
           return someChange;
       }
       
-      function originalDSetup(pathlist) {
+      function processedDSetup(pathlist) {
           var iPath = 0;
           while (pathlist.length > iPath) {
-                if (pathlist[iPath].originalD)  
-                        pathlist[iPath].setAttribute("d", pathlist[iPath].originalD);
-                else
-                    pathlist[iPath].originalD = pathlist[iPath].getAttribute("d"); 
+                //if (!existy(pathlist[iPath].processedD))  {
+                    var spd = pathlist[iPath].getAttribute("data-sp-d"); 
+                    if (spd !== null) pathlist[iPath].processedD = spd; 
+                //}
                 iPath += 1;
           }
       }
@@ -390,7 +391,7 @@
           // copy original d attribute, for reference; could be done only for path with chunk definition or chunk reference
           superpath.observer.disconnect(); // suspend the observer
           var iPath = 0;
-          originalDSetup(pathlist); // copy d attribute value to originalD if originalD doesn't exit and reset d to originalD
+          processedDSetup(pathlist); // copy d attribute value to processedD if processedD doesn't exit and reset d to processedD
           superpath.chunks = [];
           /* T2D2 group the three following calls to maintain a coherent view of the extensions */
           pathparser.addCommands(superpath.ParseToken);
@@ -414,6 +415,8 @@
               expanderReportError(pathDefinerList, pathDRefList, pathIRefList);
           iPath = 0;
           while (pathlist.length > iPath) {
+              if (existy(pathlist[iPath].processedD)) 
+                    pathlist[iPath].setAttribute("d", pathlist[iPath].processedD);
               superpath.observer.observe(pathlist[iPath], obsconfig); // observe if d attribute of the path change
                 iPath += 1;
           }
@@ -1021,7 +1024,6 @@
                     cmd.target = new pathparser.Point(-1 * target.x, -1 * target.y);
                   };
       this.reverseRules = {
-              'm': simpleReverse,
               'M': simpleReverse,
               'h': function(i, cmd, commandi) {
                     cmd.d = -1 * commandi.d;
