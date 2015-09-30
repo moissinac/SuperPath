@@ -6,7 +6,7 @@
  *			SuperPath - SVG Extension
  *
  *			Author: Jean-Claude Moissinac
- *			Copyright (c) Telecom ParisTech 2013-2014
+ *			Copyright (c) Telecom ParisTech 2013-2015
  *					All rights reserved
  *
  *  SuperPath is free software; you can redistribute it and/or modify
@@ -27,17 +27,21 @@
  *
  *
 --> 
- <svg width="8cm" height="8cm" viewBox="0 0 800 800"
+ <svg width="100%" height="100%" viewBox="-2 -2 16 16"
      xmlns="http://www.w3.org/2000/svg" 
      xmlns:xlink="http://www.w3.org/1999/xlink"
      version="1.1" onload="superpath.expandPaths()">
-  <title>Example piece01 - piece and reversed piece commands in path data</title>
-  <desc>Picture of a simple paving of a region with two path sharing a chunk</desc>
+  <title>Example defAndRefInAPath</title>
+  <desc>Picture of a simple paving of a region with several path sharing chunks</desc>
   <script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js" />
-  <rect x="1" y="1" width="798" height="798"
-    fill="none" stroke="blue" stroke-width="1" />
-  <path d="" data-sp-d="M 90,190 220,90 330,150 (p1|L330,150 280,230 L330,310 280,400)L120,375 z"
-       fill="yellow" stroke="blue" stroke-width="5" />
-  <path d="" data-sp-d="M 500,385 390,460 280,400!p1|L450,50 565,81 z"
-       fill="red" stroke="blue" stroke-width="5" />
+  <rect x="-2" y="-2" width="14" height="16"
+    fill="none" stroke="blue" stroke-width="0.1" />
+  <path d="M2,0 4,0 6,2(p1|L6,4)(p3|L4,6)(p4|L2,6)L0,4 0,2z"
+       fill="yellow" stroke="blue" stroke-width="0.1" />
+  <path d="M10,6 8,6(p2|L6,4)!p1|L8,0 10,0"
+       fill="red" stroke="blue" stroke-width="0.1" />
+  <path d="M8,6#p2|#p3|(p5|L6,8)z"
+       fill="green" stroke="blue" stroke-width="0.1" />
+  <path d="M0,8 2,6!p4|#p5|(p6|L6,10)L4,12 2,12 0,10 0,8z"
+       fill="red" stroke="blue" stroke-width="0.1" />
 </svg>

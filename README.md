@@ -1,11 +1,12 @@
 SuperPath
 =========
 
+[![bitHound Score](https://www.bithound.io/github/moissinac/SuperPath/badges/score.svg)](https://www.bithound.io/github/moissinac/SuperPath)
+[![bitHound Dependencies](https://www.bithound.io/github/moissinac/SuperPath/badges/dependencies.svg)](https://www.bithound.io/github/moissinac/SuperPath/master/dependencies/npm)
+
 Proposed extension for SVG
 
-Work in progress
-
-For now, just a proof of concept, but can be useful. Full implementation and documentation soon...
+For now, conceived as a proof of concept, but can be useful and seems working well. 
 
 If you write a scientific paper and use that code, thank's to cite me as follow:
 
@@ -18,7 +19,7 @@ URL: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5501583&isnumber=55
 **SuperPathExpander.js**
 
 Script which expand instances of the superpath extension to produce a standard 
-SVG 1.1 file. Implements L, l, Q, q, C, c
+SVG 1.1 file. Implements L, l, Q, q, C, c, T, t, S, s, a, A, h, H, v, V
 
 A typical usage is:
 
@@ -32,18 +33,20 @@ A typical usage is:
  onload="superpath.expandPaths()"
 ```
 
-Then, the principle is to define chunk of path as part of a path at associating id to that part, then to use it with the commands # or ! in the data for other path. the chunk is then defined after translation in a sequence of relatives commands deduced from tha source path. 
+Then, the principle is to define chunk of path as part of a path by associating id to that part, then to use it with the commands # or ! in the data for other path. The chunk is then defined after translation in a sequence of relatives commands deduced from tha source path. 
 
 ```
-#idOfMyChunk
+#idOfMyChunk|
 ```
 insert a copy of the chunk with id idOfMyChunk (a | must follow the id; it's the separator with what follows)
 
 ```
-!idOfMyChunk
+!idOfMyChunk|
 ```
 insert a copy of the chunk with id idOfMyChunk  (a | must follow the id; it's the separator with what follows) but after reversing the commands (from the end to the begining, and processing them to follow the same geometry from the end to the begining)
 
 See http://moissinac.github.io/SuperPath/ for samples (which are also in the Samples directory of the repositoty)
 
 See https://github.com/moissinac/SuperPath/wiki/In-progress-new-implementation-of-SuperPath for the specification and some known issues
+
+<a href="https://www.bithound.io/github/moissinac/SuperPath"><img src="https://www.bithound.io/github/moissinac/SuperPath/badges/score.svg" alt="bitHound Score" /></a>

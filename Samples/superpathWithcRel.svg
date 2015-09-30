@@ -35,20 +35,20 @@
    id="svg2"
      version="1.1" onload="superpath.expandPaths()">
     <script type="application/ecmascript" xlink:href="../Js/SuperPathExpander.js" />
-    <path  d="M425,25L225,25 225,225 425,225(p1|l0,0l0,-50c100,-12.5 0,-37.5 0,-100l0,-50l0,0)" style="fill:#0000FF" />
-    <path  d="M425,25!p1|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
+    <path  d="" data-sp-d="M425,25L225,25 225,225 425,225(p1|l0,0l0,-50c100,-12.5 0,-37.5 0,-100l0,-50l0,0)" style="fill:#0000FF" />
+    <path  d="" data-sp-d="M425,25!p1|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
     <g transform="translate(0 300)">
-      <path  d="M425,25L225,25 225,225 425,225(p2|l0,0c-50,-12.5 -50,-37.5 0,-50c100,-25 100,-75 0,-100c-50,-12.5 -50,-37.5 0,-50)" style="fill:#0000FF" />
-      <path  d="M425,25!p2|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
+      <path  d="" data-sp-d="M425,25L225,25 225,225 425,225(p2|l0,0c-50,-12.5 -50,-37.5 0,-50c100,-25 100,-75 0,-100c-50,-12.5 -50,-37.5 0,-50)" style="fill:#0000FF" />
+      <path  d="" data-sp-d="M425,25!p2|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
     </g>
     <g transform="translate(500 0)">
-      <path  d="M425,25L225,25 225,225 425,225#p1" style="fill:#0000FF" />
-      <path  d="M425,25!p1|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
-      <path  d="M425,225#p1"  style="stroke:#FF0000;fill:none;stroke-width:3" />
+      <path  d="" data-sp-d="M425,25L225,25 225,225 425,225#p1" style="fill:#0000FF" />
+      <path  d="" data-sp-d="M425,25!p1|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
+      <path  d="" data-sp-d="M425,225#p1"  style="stroke:#FF0000;fill:none;stroke-width:3" />
     </g>
     <g transform="translate(500 300)">
-      <path  d="M425,25L225,25 225,225 425,225#p2" style="fill:#0000FF" />
-      <path  d="M425,25!p2|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
-      <path  d="M425,25!p2" style="stroke:#FF0000;fill:none;stroke-width:3" />
+      <path  d="" data-sp-d="M425,25L225,25 225,225 425,225#p2" style="fill:#0000FF" />
+      <path  d="" data-sp-d="M425,25!p2|L425,225 625,225 625,25 425,25" style="fill:#00FFFF" />
+      <path  d="" data-sp-d="M425,25!p2" style="stroke:#FF0000;fill:none;stroke-width:3" />
     </g>
 </svg>

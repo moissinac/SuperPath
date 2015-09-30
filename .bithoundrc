@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    "Js/SuperPathExpander.js",
+    "Js/SuperPathExpander.min.js",     
+    "Js/SVGSuperPathParser.min.js",     
+    "Js/ExpandableSVGPathParser.min.js"     
+  ]
+}
