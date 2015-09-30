@@ -5,6 +5,18 @@ QUnit.test( "Test parsing path data with superpath definition extension", functi
     var strCmdList = cmdList.toString(cmdList);
     assert.equal( strCmdList, "M90,190L220,90L330,150(p1|L330 150 280 230 L 330 310 280 400 )L120,375z", "Passed!");
 });
+QUnit.test( "Test parsing path data with absolute arc", function( assert ) {
+    var data = "M100 100 A 100 60 15 0 0 300 200";
+    var cmdList = superpath.svg_parse_path(data);
+    var strCmdList = cmdList.toString(cmdList);
+    assert.equal( strCmdList, "M100,100A100 60 15 0 0 300,200", "Passed!");
+});
+QUnit.test( "Test parsing path data with relative arc", function( assert ) {
+    var data = "M400 100 a 100 60 15 0 0 200 100";
+    var cmdList = superpath.svg_parse_path(data);
+    var strCmdList = cmdList.toString(cmdList);
+    assert.equal( strCmdList, "M400,100a100 60 15 0 0 200,100", "Passed!");
+});
 QUnit.test( "Test parsing path data with three successive subpath definition", function( assert ) {
     var data = "M8,6#p2|#p3|(p5|L6,8)z";
     var cmdList = superpath.svg_parse_path(data);
