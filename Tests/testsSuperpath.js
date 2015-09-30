@@ -136,3 +136,21 @@ QUnit.test( "Test finding current starting point for a subpath definition with a
     var pt = superpath.getSubpathStartingPoint(cmdList, "p1");
     assert.deepEqual( pt.x + " " + pt.y , "330 150"  , "Passed!");
 });
+QUnit.test( "Test parsing path data with superpath definition extension containing arcs", function( assert ) {
+    pathparser.addCommands(superpath.ParseToken);
+    pathparser.addStringifier(superpath.TokensToString);
+    var data = "M100,200a100 100 0 0 1 300 0 (p1|a50 50 0 0 1 -150 0a50 50 0 0 0 -150 0)z";
+    var cmdList = pathparser.svg_parse_path(data);
+    var strCmdList = cmdList.toString(cmdList);
+    assert.equal( strCmdList, "M100,200a100 100 0 0 1 300,0(p1|a50 50 0 0 1 -150 0 a 50 50 0 0 0 -150 0 )z", "Passed!");
+});
+/* todo: obtain the build standrad path
+QUnit.test( "Test parsing path data with superpath definition extension containing arcs and build path", function( assert ) {
+    pathparser.addCommands(superpath.ParseToken);
+    pathparser.addStringifier(superpath.TokensToString);
+    var data = "M100,200a100 100 0 0 1 300 0 (p1|a50 50 0 0 1 -150 0a50 50 0 0 0 -150 0)z";
+    var cmdList = pathparser.svg_parse_path(data);
+    var strCmdList = cmdList.toString(cmdList);
+    assert.equal( strCmdList, "M100,200a100 100 0 0 1 300,0(p1|a50 50 0 0 1 -150 0 a 50 50 0 0 0 -150 0 )z", "Passed!");
+});
+*/
