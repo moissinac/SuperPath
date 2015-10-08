@@ -89,8 +89,8 @@ QUnit.test( "Test parsing path data with relative arc and reversing it", functio
     var strCmdList = cmdList.toString(cmdList);
     var relCmdList = pathparser.fullrelativePathCmdList(cmdList);
     var revCmdList = relCmdList.reverse();
-    var strCmdList = revCmdList.toString(cmdList);
-    assert.equal( strCmdList, "a100 60 15 0 1 -200,-100M-400,-100", "Passed!");
+    var revStrCmdList = revCmdList.toString(cmdList);
+    assert.equal( revStrCmdList, "a100 60 15 0 1 -200,-100M-400,-100", "Passed!");
 });
 QUnit.test( "Test parsing path data of ying/Yang piece defined with arcs and reversing it", function( assert ) {
     var data = "M100,200a100 100 0 0 1 300 000a50 50 0 0 1 -150 0a50 50 0 0 0 -150 0";
@@ -98,6 +98,6 @@ QUnit.test( "Test parsing path data of ying/Yang piece defined with arcs and rev
     var strCmdList = cmdList.toString(cmdList);
     var relCmdList = pathparser.fullrelativePathCmdList(cmdList);
     var revCmdList = relCmdList.reverse();
-    var strCmdList = revCmdList.toString(cmdList);
-    assert.equal( strCmdList, "a50 50 0 0 1 150,0a50 50 0 0 0 150,0a100 100 0 0 0 -300,0M-100,-200", "Passed!");
+    var revStrCmdList = revCmdList.toString(cmdList);
+    assert.equal( revStrCmdList, "a50 50 0 0 1 150,0a50 50 0 0 0 150,0a100 100 0 0 0 -300,0M-100,-200", "Passed!");
 });

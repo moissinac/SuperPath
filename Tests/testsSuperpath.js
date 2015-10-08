@@ -144,7 +144,7 @@ QUnit.test( "Test parsing path data with superpath definition extension containi
     var strCmdList = cmdList.toString(cmdList);
     assert.equal( strCmdList, "M100,200a100 100 0 0 1 300,0(p1|a50 50 0 0 1 -150 0 a 50 50 0 0 0 -150 0 )z", "Passed!");
 });
-/* todo: obtain the build standrad path
+/* t2d2 see how obtain the build standrad path
 QUnit.test( "Test parsing path data with superpath definition extension containing arcs and build path", function( assert ) {
     pathparser.addCommands(superpath.ParseToken);
     pathparser.addStringifier(superpath.TokensToString);
